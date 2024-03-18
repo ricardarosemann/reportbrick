@@ -1,0 +1,16 @@
+Type: Package
+Package: facade
+Title: Reporting package for BRICK
+Version: 0.0.1
+Date: 2024-03-18
+Authors@R:
+    person("Robin", "Hasse", , "robin.hasse@pik-potsdam.de",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0003-1818-3186"))
+Description: This package contains BRICK-specific routines to report model results. The main functionality is to generate a mif-file from a given BRICK model run folder.
+License: LGPL-3
+URL: https://github.com/pik-piam/facade
+Suggests:
+    testthat
+Encoding: UTF-8
+RoxygenNote: 7.2.1
