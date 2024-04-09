@@ -1,0 +1,22 @@
+---
+## Building shell ====
+# Only low for state and `0` for renovation
+bsr:
+  alias: bs
+  elements:
+    low: Low efficiency
+    "0": No change
+  subsets:
+    all: low
+    all0: [low, "0"]
+
+
+## Building type ====
+# No commercial buildings
+typ:
+  elements:
+    SFH: SFH
+    MFH: MFH
+  subsets:
+    res: [SFH, MFH]
+...
