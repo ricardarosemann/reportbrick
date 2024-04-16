@@ -1,0 +1,10 @@
+---
+## Building type ====
+# No commercial buildings
+typ:
+  elements:
+    SFH: SFH
+    MFH: MFH
+  subsets:
+    res: [SFH, MFH]
+...
