@@ -1,8 +1,8 @@
 # Reporting package for BRICK
 
-R package **reportBrick**, version **0.1.0**
+R package **reportbrick**, version **0.1.1**
 
-[![CRAN status](https://www.r-pkg.org/badges/version/reportBrick)](https://cran.r-project.org/package=reportBrick)  [![R build status](https://github.com/pik-piam/reportBrick/workflows/check/badge.svg)](https://github.com/pik-piam/reportBrick/actions) [![codecov](https://codecov.io/gh/pik-piam/reportBrick/branch/master/graph/badge.svg)](https://app.codecov.io/gh/pik-piam/reportBrick) 
+[![CRAN status](https://www.r-pkg.org/badges/version/reportbrick)](https://cran.r-project.org/package=reportbrick)  [![R build status](https://github.com/pik-piam/reportbrick/workflows/check/badge.svg)](https://github.com/pik-piam/reportbrick/actions) [![codecov](https://codecov.io/gh/pik-piam/reportbrick/branch/master/graph/badge.svg)](https://app.codecov.io/gh/pik-piam/reportbrick) 
 
 ## Purpose and Functionality
 
@@ -21,7 +21,7 @@ The additional repository can be made available permanently by adding the line a
 After that the most recent version of the package can be installed using `install.packages`:
 
 ```r 
-install.packages("reportBrick")
+install.packages("reportbrick")
 ```
 
 Package updates can be installed using `update.packages` (make sure that the additional repository has been added before running that command):
@@ -36,18 +36,18 @@ In case of questions / problems please contact Robin Hasse <robin.hasse@pik-pots
 
 ## Citation
 
-To cite package **reportBrick** in publications use:
+To cite package **reportbrick** in publications use:
 
-Hasse R (2024). _reportBrick: Reporting package for BRICK_. R package version 0.1.0, <https://github.com/pik-piam/reportBrick>.
+Hasse R (2024). _reportbrick: Reporting package for BRICK_. R package version 0.1.1, <https://github.com/pik-piam/reportbrick>.
 
 A BibTeX entry for LaTeX users is
 
  ```latex
 @Manual{,
-  title = {reportBrick: Reporting package for BRICK},
+  title = {reportbrick: Reporting package for BRICK},
   author = {Robin Hasse},
   year = {2024},
-  note = {R package version 0.1.0},
-  url = {https://github.com/pik-piam/reportBrick},
+  note = {R package version 0.1.1},
+  url = {https://github.com/pik-piam/reportbrick},
 }
 ```

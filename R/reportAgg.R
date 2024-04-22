@@ -173,7 +173,7 @@ reportAgg <- function(x,
   readIt <- function(file) {
     toolGetMapping(name = file,
                    type  = "sectoral",
-                   where = "reportBrick",
+                   where = "reportbrick",
                    returnPathOnly = TRUE) %>%
       read_yaml()
   }
