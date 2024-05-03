@@ -1,0 +1,66 @@
+---
+title: "Plots from calibration"
+author: "Ricarda Rosemann"
+date: "2024-04-01"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+
+path <- "C:\\Users\\ricardar\\Documents\\Results\\BRICK\\calibration-tests\\stocks-extrElec-vin\\lowEhp1-2010-30Iter0_1A\\"
+```
+
+## Target function
+
+
+```{r target function}
+p_f <- read_csv(file.path(path, "p_fIter.csv"))
+plotGranularCalibRes(p_f, path, "p_fIter", color = NULL)
+
+```
+
+## Comparison of target functions
+
+Absolute and relative aggregate deviations of flows and stocks
+
+```{r target function comparison}
+p_stock <- read_csv(file.path(path, "p_stockIter.csv"))
+plotAggregateCalibRes(p_stock, path, "p_fStockIter", varName = "dev", groupingVars = c("iteration", "typ", "loc"), color = NULL)
+
+p_construction <- read_csv(file.path(path, "p_constructionIter.csv"))
+p_renovation <- read_csv(file.path(path, "p_renovationIter.csv"))
+plotAggregateCalibRes(p_construction, path, "p_fConIter", dataRen = p_renovation,
+                      varName = "dev",
+                      groupingVars = c("iteration", "typ", "loc"), color = NULL,
+                      groupingVarsRen = c("iteration", "typ", "loc"))
+```
+
+## Comparison of targets by hs
+
+Absolute and relative deviations by hs.
+
+```{r target function by hs}
+plotAggregateCalibRes(p_stock, path, "p_fStock_byHs", varName = "dev", groupingVars = c("iteration", "typ", "loc", "hs", "ttot"), color = "ttot", filterVars = "hsr")
+plotAggregateCalibRes(p_construction, path, "p_fCon_byHs", dataRen = p_renovation,
+                      varName = "dev",
+                      groupingVars = c("iteration", "typ", "loc", "hs", "ttot"), color = "ttot",
+                      groupingVarsRen = c("iteration", "typ", "loc", "hsr", "ttot"),
+                      filterVars = "hsr")
+```
+
+## Direction of descent
+
+```{r direction of descent}
+```
+
+## Step size
+
+```{r step size}
+```
+
+## x relative to initial value
+
+```{r x rel to initial value}
+```
