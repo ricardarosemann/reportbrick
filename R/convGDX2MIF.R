@@ -50,6 +50,10 @@ convGDX2MIF <- function(gdx, tmpl = NULL, file = NULL, scenario = "default", t =
 
   # FINISH ---------------------------------------------------------------------
 
+  if (length(output) == 0) {
+    stop("Unable to report any variable.")
+  }
+
   # Add dimension names "scenario.model.variable"
   getSets(output)[3] <- "variable"
   output <- add_dimension(output, dim = 3.1, add = "model", nm = "BRICK")
@@ -58,6 +62,7 @@ convGDX2MIF <- function(gdx, tmpl = NULL, file = NULL, scenario = "default", t =
   # either write the *.mif or return the magpie object
   if (!is.null(file)) {
     write.report(output, file = file, ndigit = 7)
+    message("MIF file written: ", file)
   } else {
     return(output)
   }

@@ -81,7 +81,7 @@ reportAgg <- function(x,
   # AGGREGATE TO REPORTING VARS ------------------------------------------------
 
   if (is.null(rprt)) {
-    out <- .agg(x, map$agg) %>%
+    out <- .agg(x, agg = map$agg, silent = silent) %>%
       .setNames(name)
   } else {
     # combination of entries of reporting dimensions
@@ -98,9 +98,18 @@ reportAgg <- function(x,
                        outName, fixed = TRUE)
       }
 
-      # select combination of reporting values and aggregate to final variable
-      do.call(mselect, c(list(x = x), comb)) %>%
-        .agg(map$agg) %>%
+      # select combination of reporting values
+      combData <- do.call(mselect, c(list(x = x), comb))
+      if (length(combData) == 0) {
+        if (isFALSE(silent)) {
+          message("Missing elements to report. Skip '", outName, "'.")
+        }
+        return(NULL)
+      }
+
+      # aggregate to final variable
+      combData %>%
+        .agg(agg = map$agg, silent = silent) %>%
         .setNames(outName)
     }, simplify = FALSE))
   }
@@ -178,14 +187,22 @@ reportAgg <- function(x,
 #' @param x MagPIE object, BRICK object
 #' @param agg named vector of dimensions to aggregate.
 #' @returns aggregated MagPIE objects without sub dimensions in dim 3
+#' @param silent boolean, suppress warnings and printing of dimension mapping
 #'
 #' @importFrom magclass dimSums mselect
 
-.agg <- function(x, agg) {
+.agg <- function(x, agg, silent = TRUE) {
 
-  # return NULL if any element in any dimension is missing
+  if (length(x) == 0) {
+    return(NULL)
+  }
+
   missingElements <- .missingElements(x, agg)
   if (length(missingElements) > 0) {
+    if (isFALSE(silent)) {
+      message("Missing elements to aggregate: ",
+              paste(missingElements, collapse = ", "))
+    }
     return(NULL)
   }
 
@@ -206,6 +223,10 @@ reportAgg <- function(x,
 #' @importFrom magclass getItems
 
 .missingElements <- function(x, dimLst) {
+  if (length(x) == 0) {
+    stop("'x' has length zero.")
+  }
+
   missingDims <- setdiff(names(dimLst), getSets(x))
   if (length(missingDims) > 0) {
     stop("The following dimensions are listed in 'dimLst' but missing in 'x': ",
@@ -213,7 +234,7 @@ reportAgg <- function(x,
   }
   unlist(lapply(names(dimLst), function(dim) {
     if (!dim %in% getSets(x)) {
-      stop("x has no dimension call")
+      stop("x has no dimension called ", dim)
     }
     setdiff(dimLst[[dim]], getItems(x, dim = dim))
   }))
