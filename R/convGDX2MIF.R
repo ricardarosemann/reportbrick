@@ -26,6 +26,8 @@ convGDX2MIF <- function(gdx, tmpl = NULL, file = NULL, scenario = "default", t =
     t <- as.numeric(as.character(readGdxSymbol(gdx, "ttot", asMagpie = FALSE)[[1]]))
   }
 
+  brickSets <- readBrickSets(tmpl)
+
   # central object containing all output data
   output <- NULL
 
@@ -35,15 +37,15 @@ convGDX2MIF <- function(gdx, tmpl = NULL, file = NULL, scenario = "default", t =
 
   ## Stock ====
   message("running reportBuildingStock ...")
-  output <- mbind(output, reportBuildingStock(gdx, tmpl)[, t, ])
+  output <- mbind(output, reportBuildingStock(gdx, brickSets)[, t, ])
 
   ## Construction ====
   message("running reportConstruction ...")
-  output <- mbind(output, reportConstruction(gdx, tmpl)[, t, ])
+  output <- mbind(output, reportConstruction(gdx, brickSets)[, t, ])
 
   ## Demolition ====
   message("running reportDemolition ...")
-  output <- mbind(output, reportDemolition(gdx, tmpl)[, t, ])
+  output <- mbind(output, reportDemolition(gdx, brickSets)[, t, ])
 
 
   # FINISH ---------------------------------------------------------------------

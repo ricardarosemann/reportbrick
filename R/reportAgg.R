@@ -3,7 +3,7 @@
 #' @param x MagPIE object, BRICK object
 #' @param name character, name of reporting variable. reported dimensions passed
 #'   with \code{rprt} have to be escaped with curly brackets.
-#' @param tmpl character, BRICK reporting template
+#' @param brickSets named list, BRICK reporting template
 #' @param agg named vector of dimensions to aggregate. Names are dimension names
 #'   of \code{x} and values are either set elements or subsets of set elements
 #'   to consider.
@@ -19,7 +19,7 @@
 
 reportAgg <- function(x,
                       name,
-                      tmpl = NULL,
+                      brickSets = readBrickSets(NULL),
                       agg = NULL,
                       rprt = NULL,
                       silent = TRUE) {
@@ -69,8 +69,6 @@ reportAgg <- function(x,
 
 
   # PREPARE --------------------------------------------------------------------
-
-  brickSets <- .readBrickSets(tmpl)
 
   # list with dimension elements to consider for aggregation and reporting
   map <- .constructDimMapping(agg, rprt, brickSets, silent)
@@ -154,53 +152,6 @@ reportAgg <- function(x,
     names(mElements) <- names(m)
     return(mElements)
   })
-}
-
-
-
-
-
-#' Read brickSets mapping
-#'
-#' @param tmpl character, BRICK reporting template
-#' @returns named list with definition of common set elements
-#'
-#' @importFrom madrat toolGetMapping
-#' @importFrom yaml read_yaml
-
-.readBrickSets <- function(tmpl) {
-
-  readIt <- function(file) {
-    toolGetMapping(name = file,
-                   type  = "sectoral",
-                   where = "reportbrick",
-                   returnPathOnly = TRUE) %>%
-      read_yaml()
-  }
-
-  file <- "brickSets.yaml"
-  brickSets <- readIt(file)
-
-  # replace default sets with custom sets where defined
-  if (!is.null(tmpl)) {
-    file <- paste0("brickSets_", tmpl, ".yaml")
-    customBrickSets <- readIt(file)
-    brickSets[names(customBrickSets)] <- customBrickSets
-  }
-
-  # duplicate aliases
-  brickSetsExplicit <- list()
-  for (dimName in names(brickSets)) {
-    dim <- brickSets[dimName]
-    aliases <- dim[[1]][["alias"]]
-    dim[[1]][["alias"]] <- NULL
-    aliasDims <- rep(dim, length(aliases))
-    names(aliasDims) <- aliases
-    brickSetsExplicit <- c(brickSetsExplicit, c(as.list(dim), aliasDims))
-  }
-
-  attr(brickSetsExplicit, "file") <- file
-  return(brickSetsExplicit)
 }
 
 

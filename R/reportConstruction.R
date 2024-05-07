@@ -3,13 +3,13 @@
 #' Report quantities describing the construction of new buildings
 #'
 #' @param gdx gams transfer container of the BRICK GDX
-#' @param tmpl character, BRICK reporting template
+#' @param brickSets character, BRICK reporting template
 #'
 #' @author Robin Hasse
 #'
 #' @importFrom magclass mbind setNames dimSums mselect collapseDim
 
-reportConstruction <- function(gdx, tmpl = NULL) {
+reportConstruction <- function(gdx, brickSets = NULL) {
 
   # READ -----------------------------------------------------------------------
 
@@ -30,40 +30,40 @@ reportConstruction <- function(gdx, tmpl = NULL) {
 
     ## Total ====
     reportAgg(v_construction,
-              "Construction|Buildings (bn m2/yr)", tmpl,
+              "Construction|Buildings (bn m2/yr)", brickSets,
               agg = c(bs = "all", hs = "all", loc = "all", typ = "resCom", inc = "all")),
     reportAgg(v_construction,
-              "Construction|Residential (bn m2/yr)", tmpl,
+              "Construction|Residential (bn m2/yr)", brickSets,
               agg = c(bs = "all", hs = "all", loc = "all", typ = "res", inc = "all")),
     reportAgg(v_construction,
-              "Construction|Commercial (bn m2/yr)", tmpl,
+              "Construction|Commercial (bn m2/yr)", brickSets,
               agg = c(bs = "all", hs = "all", loc = "all", typ = "com", inc = "all")),
 
 
     ## by building type ====
     reportAgg(v_construction,
-              "Construction|Residential|{typ} (bn m2/yr)", tmpl,
+              "Construction|Residential|{typ} (bn m2/yr)", brickSets,
               agg = c(bs = "all", hs = "all", loc = "all", inc = "all"),
               rprt = c(typ = "res")),
 
 
     ## by location ====
     reportAgg(v_construction,
-              "Construction|Residential|{loc} (bn m2/yr)", tmpl,
+              "Construction|Residential|{loc} (bn m2/yr)", brickSets,
               agg = c(bs = "all", hs = "all", typ = "res", inc = "all"),
               rprt = c(loc = "all")),
 
 
     ## by heating system ====
     reportAgg(v_construction,
-              "Construction|Residential|{hs} (bn m2/yr)", tmpl,
+              "Construction|Residential|{hs} (bn m2/yr)", brickSets,
               agg = c(bs = "all", loc = "all", typ = "res", inc = "all"),
               rprt = c(hs = "all")),
 
 
     ## by building type + heating system ====
     reportAgg(v_construction,
-              "Construction|Residential|{typ}|{hs} (bn m2/yr)", tmpl,
+              "Construction|Residential|{typ}|{hs} (bn m2/yr)", brickSets,
               agg = c(bs = "all", loc = "all", inc = "all"),
               rprt = c(hs = "all", typ = "res"))
 
