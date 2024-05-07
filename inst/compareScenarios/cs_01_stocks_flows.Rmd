@@ -1,0 +1,49 @@
+# Stock and flows
+
+## Building stock
+
+```{r stock vars}
+tot <- "Stock|Buildings"
+subsec <- c("Stock|Residential",
+            "Stock|Commercial")
+```
+
+```{r StockSubsector}
+showAreaAndBarPlots(data, vars = subsec, tot = tot, orderVars = "user", scales = "fixed")
+```
+
+### All buildings
+
+### Residential
+```{r residential stock vars}
+tot <- "Stock|Residential"
+heatingRes <- paste(tot, heating, sep = "|")
+vintageRes <- paste(tot, vintage, sep = "|")
+typeRes <- paste(tot, type, sep = "|")
+locationRes <- paste(tot, location, sep = "|")
+```
+
+#### by building type
+```{r Stock-Residential-(type)}
+showAreaAndBarPlots(data, vars = typeRes, tot = tot, orderVars = "user", scales = "fixed")
+walk(typeRes, showLinePlots, data = data)
+```
+
+#### by location
+```{r Stock-Residential-(location)}
+showAreaAndBarPlots(data, vars = locationRes, tot = tot, orderVars = "user", scales = "fixed")
+walk(locationRes, showLinePlots, data = data)
+```
+
+#### by construction cohort
+```{r Stock-Residential-(vintage)}
+showAreaAndBarPlots(data, vars = rev(vintageRes), tot = tot, orderVars = "user", scales = "fixed")
+```
+
+#### by Space heating
+```{r Stock-Residential-(heating)}
+showAreaAndBarPlots(data, vars = heatingRes, tot = tot, orderVars = "user", scales = "fixed")
+walk(heatingRes, showLinePlots, data = data)
+```
+
+### Commercial
