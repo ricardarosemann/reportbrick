@@ -4,12 +4,12 @@
 \alias{reportBuildingStock}
 \title{Report building Stock}
 \usage{
-reportBuildingStock(gdx, tmpl = NULL)
+reportBuildingStock(gdx, brickSets = NULL)
 }
 \arguments{
 \item{gdx}{gams transfer container of the BRICK GDX}
 
-\item{tmpl}{character, BRICK reporting template}
+\item{brickSets}{character, BRICK reporting template}
 }
 \description{
 Report quantities describing the stock of buildings

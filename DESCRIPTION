@@ -1,8 +1,8 @@
 Type: Package
 Package: reportbrick
 Title: Reporting package for BRICK
-Version: 0.1.1
-Date: 2024-04-22
+Version: 0.2.0
+Date: 2024-05-08
 Authors@R:
     person("Robin", "Hasse", , "robin.hasse@pik-potsdam.de",
            role = c("aut", "cre"),
@@ -15,6 +15,8 @@ Imports:
   gamstransfer (>= 3.0.1),
   madrat,
   magclass,
+  mip (>= 0.148.15),
+  piamPlotComparison,
   yaml
 Suggests:
     covr,

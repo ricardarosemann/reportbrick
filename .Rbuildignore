@@ -7,5 +7,7 @@
 ^codecov\.yml$
 ^\.github$
 ^.*CITATION.cff$
+^.*_Rmd/?.*$
+^.*\.pdf$
 ^.lintr$
 ^tests/.lintr$

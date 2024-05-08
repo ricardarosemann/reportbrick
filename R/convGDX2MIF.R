@@ -26,6 +26,8 @@ convGDX2MIF <- function(gdx, tmpl = NULL, file = NULL, scenario = "default", t =
     t <- as.numeric(as.character(readGdxSymbol(gdx, "ttot", asMagpie = FALSE)[[1]]))
   }
 
+  brickSets <- readBrickSets(tmpl)
+
   # central object containing all output data
   output <- NULL
 
@@ -35,18 +37,22 @@ convGDX2MIF <- function(gdx, tmpl = NULL, file = NULL, scenario = "default", t =
 
   ## Stock ====
   message("running reportBuildingStock ...")
-  output <- mbind(output, reportBuildingStock(gdx, tmpl)[, t, ])
+  output <- mbind(output, reportBuildingStock(gdx, brickSets)[, t, ])
 
   ## Construction ====
   message("running reportConstruction ...")
-  output <- mbind(output, reportConstruction(gdx, tmpl)[, t, ])
+  output <- mbind(output, reportConstruction(gdx, brickSets)[, t, ])
 
   ## Demolition ====
   message("running reportDemolition ...")
-  output <- mbind(output, reportDemolition(gdx, tmpl)[, t, ])
+  output <- mbind(output, reportDemolition(gdx, brickSets)[, t, ])
 
 
   # FINISH ---------------------------------------------------------------------
+
+  if (length(output) == 0) {
+    stop("Unable to report any variable.")
+  }
 
   # Add dimension names "scenario.model.variable"
   getSets(output)[3] <- "variable"
@@ -56,6 +62,7 @@ convGDX2MIF <- function(gdx, tmpl = NULL, file = NULL, scenario = "default", t =
   # either write the *.mif or return the magpie object
   if (!is.null(file)) {
     write.report(output, file = file, ndigit = 7)
+    message("MIF file written: ", file)
   } else {
     return(output)
   }
