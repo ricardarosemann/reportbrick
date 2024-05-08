@@ -4,12 +4,14 @@
 \alias{.agg}
 \title{Aggregate}
 \usage{
-.agg(x, agg)
+.agg(x, agg, silent = TRUE)
 }
 \arguments{
 \item{x}{MagPIE object, BRICK object}
 
 \item{agg}{named vector of dimensions to aggregate.}
+
+\item{silent}{boolean, suppress warnings and printing of dimension mapping}
 }
 \value{
 aggregated MagPIE objects without sub dimensions in dim 3

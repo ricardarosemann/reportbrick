@@ -1,8 +1,8 @@
-ValidationKey: '218185'
+ValidationKey: '397020'
 AutocreateReadme: yes
 AcceptedWarnings:
 - 'Warning: package ''.*'' was built under R version'
 - 'Warning: namespace ''.*'' is not available and has been replaced'
-AcceptedNotes: ~
+AcceptedNotes: Namespaces in Imports field not imported from\:\n *.mip. .piamPlotComparison.
 allowLinterWarnings: no
 enforceVersionUpdate: no

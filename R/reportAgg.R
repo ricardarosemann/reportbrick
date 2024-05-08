@@ -3,7 +3,7 @@
 #' @param x MagPIE object, BRICK object
 #' @param name character, name of reporting variable. reported dimensions passed
 #'   with \code{rprt} have to be escaped with curly brackets.
-#' @param tmpl character, BRICK reporting template
+#' @param brickSets named list, BRICK reporting template
 #' @param agg named vector of dimensions to aggregate. Names are dimension names
 #'   of \code{x} and values are either set elements or subsets of set elements
 #'   to consider.
@@ -19,7 +19,7 @@
 
 reportAgg <- function(x,
                       name,
-                      tmpl = NULL,
+                      brickSets = readBrickSets(NULL),
                       agg = NULL,
                       rprt = NULL,
                       silent = TRUE) {
@@ -70,8 +70,6 @@ reportAgg <- function(x,
 
   # PREPARE --------------------------------------------------------------------
 
-  brickSets <- .readBrickSets(tmpl)
-
   # list with dimension elements to consider for aggregation and reporting
   map <- .constructDimMapping(agg, rprt, brickSets, silent)
   if (isFALSE(silent)) {
@@ -83,7 +81,7 @@ reportAgg <- function(x,
   # AGGREGATE TO REPORTING VARS ------------------------------------------------
 
   if (is.null(rprt)) {
-    out <- .agg(x, map$agg) %>%
+    out <- .agg(x, agg = map$agg, silent = silent) %>%
       .setNames(name)
   } else {
     # combination of entries of reporting dimensions
@@ -100,9 +98,18 @@ reportAgg <- function(x,
                        outName, fixed = TRUE)
       }
 
-      # select combination of reporting values and aggregate to final variable
-      do.call(mselect, c(list(x = x), comb)) %>%
-        .agg(map$agg) %>%
+      # select combination of reporting values
+      combData <- do.call(mselect, c(list(x = x), comb))
+      if (length(combData) == 0) {
+        if (isFALSE(silent)) {
+          message("Missing elements to report. Skip '", outName, "'.")
+        }
+        return(NULL)
+      }
+
+      # aggregate to final variable
+      combData %>%
+        .agg(agg = map$agg, silent = silent) %>%
         .setNames(outName)
     }, simplify = FALSE))
   }
@@ -160,53 +167,6 @@ reportAgg <- function(x,
 
 
 
-#' Read brickSets mapping
-#'
-#' @param tmpl character, BRICK reporting template
-#' @returns named list with definition of common set elements
-#'
-#' @importFrom madrat toolGetMapping
-#' @importFrom yaml read_yaml
-
-.readBrickSets <- function(tmpl) {
-
-  readIt <- function(file) {
-    toolGetMapping(name = file,
-                   type  = "sectoral",
-                   where = "reportbrick",
-                   returnPathOnly = TRUE) %>%
-      read_yaml()
-  }
-
-  file <- "brickSets.yaml"
-  brickSets <- readIt(file)
-
-  # replace default sets with custom sets where defined
-  if (!is.null(tmpl)) {
-    file <- paste0("brickSets_", tmpl, ".yaml")
-    customBrickSets <- readIt(file)
-    brickSets[names(customBrickSets)] <- customBrickSets
-  }
-
-  # duplicate aliases
-  brickSetsExplicit <- list()
-  for (dimName in names(brickSets)) {
-    dim <- brickSets[dimName]
-    aliases <- dim[[1]][["alias"]]
-    dim[[1]][["alias"]] <- NULL
-    aliasDims <- rep(dim, length(aliases))
-    names(aliasDims) <- aliases
-    brickSetsExplicit <- c(brickSetsExplicit, c(as.list(dim), aliasDims))
-  }
-
-  attr(brickSetsExplicit, "file") <- file
-  return(brickSetsExplicit)
-}
-
-
-
-
-
 #' Create tag
 #'
 #' Escape dimension name in curly brackets
@@ -227,14 +187,22 @@ reportAgg <- function(x,
 #' @param x MagPIE object, BRICK object
 #' @param agg named vector of dimensions to aggregate.
 #' @returns aggregated MagPIE objects without sub dimensions in dim 3
+#' @param silent boolean, suppress warnings and printing of dimension mapping
 #'
 #' @importFrom magclass dimSums mselect
 
-.agg <- function(x, agg) {
+.agg <- function(x, agg, silent = TRUE) {
 
-  # return NULL if any element in any dimension is missing
+  if (length(x) == 0) {
+    return(NULL)
+  }
+
   missingElements <- .missingElements(x, agg)
   if (length(missingElements) > 0) {
+    if (isFALSE(silent)) {
+      message("Missing elements to aggregate: ",
+              paste(missingElements, collapse = ", "))
+    }
     return(NULL)
   }
 
@@ -255,6 +223,10 @@ reportAgg <- function(x,
 #' @importFrom magclass getItems
 
 .missingElements <- function(x, dimLst) {
+  if (length(x) == 0) {
+    stop("'x' has length zero.")
+  }
+
   missingDims <- setdiff(names(dimLst), getSets(x))
   if (length(missingDims) > 0) {
     stop("The following dimensions are listed in 'dimLst' but missing in 'x': ",
@@ -262,7 +234,7 @@ reportAgg <- function(x,
   }
   unlist(lapply(names(dimLst), function(dim) {
     if (!dim %in% getSets(x)) {
-      stop("x has no dimension call")
+      stop("x has no dimension called ", dim)
     }
     setdiff(dimLst[[dim]], getItems(x, dim = dim))
   }))

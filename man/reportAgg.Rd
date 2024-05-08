@@ -4,7 +4,14 @@
 \alias{reportAgg}
 \title{Report aggregated quantities}
 \usage{
-reportAgg(x, name, tmpl = NULL, agg = NULL, rprt = NULL, silent = TRUE)
+reportAgg(
+  x,
+  name,
+  brickSets = readBrickSets(NULL),
+  agg = NULL,
+  rprt = NULL,
+  silent = TRUE
+)
 }
 \arguments{
 \item{x}{MagPIE object, BRICK object}
@@ -12,7 +19,7 @@ reportAgg(x, name, tmpl = NULL, agg = NULL, rprt = NULL, silent = TRUE)
 \item{name}{character, name of reporting variable. reported dimensions passed
 with \code{rprt} have to be escaped with curly brackets.}
 
-\item{tmpl}{character, BRICK reporting template}
+\item{brickSets}{named list, BRICK reporting template}
 
 \item{agg}{named vector of dimensions to aggregate. Names are dimension names
 of \code{x} and values are either set elements or subsets of set elements
