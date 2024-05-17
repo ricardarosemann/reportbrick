@@ -16,7 +16,7 @@
 #' @importFrom rmarkdown render
 #' @export
 
-plotBRICKCalib <- function(outputDir = NULL, cal = "BRICK_calibration_report.csv",
+plotBRICKCalib <- function(outputDir = ".", cal = "BRICK_calibration_report.csv",
                            outName = "", scenNames = NULL,
                            savePlots = FALSE) {
 
@@ -35,7 +35,7 @@ plotBRICKCalib <- function(outputDir = NULL, cal = "BRICK_calibration_report.csv
 
   # Assemble the parameters to be passed to the markdown file
   yamlParams <- list(
-    outputDir = normalizePath(outputDir, mustWork = TRUE),
+    outputDir = normalizePath(outputDir),
     cal = cal,
     docTitle = paste("BRICK Calibration Report", paste(scenario, collapse = " - ")),
     scenNames = scenNames,
@@ -50,7 +50,7 @@ plotBRICKCalib <- function(outputDir = NULL, cal = "BRICK_calibration_report.csv
   file.copy(
             piamutils::getSystemFile(file.path("plotsCalibrationReporting", "plotsCalibration.Rmd"),
                                      package = "reportbrick"),
-            outputDir[1], overwrite = TRUE)
+            finalOutputDir, overwrite = TRUE)
 
 
   # Call the Rmd file

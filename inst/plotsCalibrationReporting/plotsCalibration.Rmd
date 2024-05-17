@@ -9,17 +9,14 @@ output:
 params:
     docTitle: "BRICK calibration report"
     cal: "BRICK_calibration_report.csv"
-    outputDir: "."
+    outputDir: "C:\\Users\\ricardar\\Documents\\Results\\BRICK\\calibration-tests\\stockszero-extrElec-vin\\lowEhp1-2010-30Iter0_1A_zero"
     scenNames: NULL
-    savePlots: FALSE
+    savePlots: TRUE
     name: ""
 ---
 
 ```{r setup, include=FALSE}
-library(dplyr)
-library(ggplot2)
-library(mip)
-library(readr)
+library(dplyr) #nolint: undesirable_function_linter.
 
 knitr::opts_chunk$set(
   echo = FALSE,
@@ -31,217 +28,160 @@ knitr::opts_chunk$set(
 
 
 ```{r set variables and functions, check existence of first file}
+
+# Assemble all file paths
 filePath <- file.path(params$outputDir, params$cal)
 
-if (!file.exists(filePath[1])) {
-  print("No BRICK_calibration_report.csv file found. BRICK_calibration_calibration.csv is normally produced during calibration runs.")
+# Check if at least one file in the given paths exists
+if (!any(file.exists(filePath))) {
+  message("No BRICK_calibration_report.csv file found",
+          "BRICK_calibration_calibration.csv is normally produced during calibration runs.")
   knitr::knit_exit()
 }
 
+# Extract parameters
 if (!is.null(params$scenNames)) {
   names(filePath) <- params$scenNames
 }
-savePl <- params$savePlots
-nameAdd <- params$name
 
-.extractVariable <- function(df, varName) {
-  df %>%
+savePlots <- params$savePlots
+outName <- params$name
+outPath <- dirname(filePath[1])
+
+# Standard procedure to write a calibration plot
+.createCalibrationPlot <- function(data, varName, outPath, outName = "",
+                                   color = NULL, savePlots = FALSE) {
+  # Extract the data
+  plData <- data %>%
     filter(.data[["variable"]] == varName) %>%
     select(where(~ any(!is.na(.x))))
+  # Create the plots
+  plList <- mip::mipIterations(plData, returnGgplots = TRUE, xAxis = "iteration",
+                               color = color, facets = c("loc", "typ"),
+                               slider = NULL, facetScales = "free")
+  # Modify, save and show the plots
+  purrr::walk(plList, function(pl) {
+    pl <- pl + ggplot2::expand_limits(y = 0)
+    # Currently, this overwrites previous plots so that only the last one remains
+    if (isTRUE(savePlots)) {
+      ggplot2::ggsave(file.path(outPath, paste0(paste(varName, outName, sep = "_"), ".png")), pl)
+    }
+    print(pl)
+  })
 }
 
-# TODO: Combine these two functions - or maybe all three - in one
-.expandYToZero <- function(pl) {
-  pl + expand_limits(y = 0)
-}
+```
 
-.savePlot <- function(pl, savePl, path, nameAdd, name) {
-  if (isTRUE(savePl)) {
-    ggsave(file.path(path, paste0(paste(name, nameAdd, sep = "_"), ".png")), pl)
+
+```{r load data}
+
+if (length(filePath) == 1) {
+  data <- readr::read_csv(filePath)
+  color <- NULL
+} else if (length(filePath) > 1) {
+  # If more than one file path is given: Assemble all data in one data frame
+  data <- data.frame()
+  for (scen in names(filePath)) {
+    if (file.exists(filePath[[scen]])) {
+      tmp <- readr::read_csv(filePath[[scen]]) %>%
+        mutate(scenario = scen, .before = 1)
+      data <- rbind(data, tmp)
+    } else {
+      warning("The file", filePath[[scen]], "does not exist and was skipped.")
+    }
   }
-  return(pl)
+  color <- "scenario"
 }
 
 ```
 
 ## Target function
 
-```{r load data}
-
-if (length(filePath) == 1) {
-  data <- read_csv(filePath)
-  
-  color <- NULL
-} else if (length(filePath) > 1) {
-  data <- data.frame()
-  for (scen in names(filePath)) {
-    tmp <- read_csv(filePath[[scen]]) %>%
-      mutate(scenario = scen, .before = 1)
-    data <- rbind(data, tmp)
-  }
-  
-  color <- "scenario"
-}
-
-```
-
 ```{r target function}
 
-.savePlot(lapply(mipIterations(.extractVariable(data, "targetFunction"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = color, facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "targetFunction")
-
+.createCalibrationPlot(data, "targetFunction", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
 
 ```
 
-## Absolute stock and flow deviation
-
-Absolute aggregate deviations of flows and stocks
+## Absolute stock and flow deviations
 
 ```{r absolute stock and flow deviations}
-.savePlot(lapply(mipIterations(.extractVariable(data, "stockDevAgg"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = color, facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "stockDevAgg")
 
-.savePlot(lapply(mipIterations(.extractVariable(data, "conDevAgg"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = color, facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "conDevAgg")
+.createCalibrationPlot(data, "stockDevAgg", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
 
-.savePlot(lapply(mipIterations(.extractVariable(data, "renDevAgg"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = color, facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "renDevAgg")
+.createCalibrationPlot(data, "conDevAgg", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
 
-.savePlot(lapply(mipIterations(.extractVariable(data, "flowDevAgg"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = color, facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "flowDevAgg")
+.createCalibrationPlot(data, "renDevAgg", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
+
+.createCalibrationPlot(data, "flowDevAgg", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
 
 ```
 
 
-## Relative stock and flow deviation
+## Relative stock and flow deviations
 
-Relative aggregate deviations of flows and stocks
+```{r relative stock and flow deviations}
 
-```{r relative stock and flow deviation}
-.savePlot(lapply(mipIterations(.extractVariable(data, "stockDevRel"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = color, facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "stockDevRel")
+.createCalibrationPlot(data, "stockDevRel", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
 
-.savePlot(lapply(mipIterations(.extractVariable(data, "conDevRel"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = color, facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "conDevRel")
+.createCalibrationPlot(data, "conDevRel", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
 
-.savePlot(lapply(mipIterations(.extractVariable(data, "renDevRel"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = color, facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "renDevRel")
+.createCalibrationPlot(data, "renDevRel", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
 
-.savePlot(lapply(mipIterations(.extractVariable(data, "flowDevRel"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = color, facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "flowDevRel")
+.createCalibrationPlot(data, "flowDevRel", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
 
 ```
 
-## Absolute deviations by hs
+## Absolute deviations by heating system
 
-Absolute deviations by hs.
+```{r absolute stock and flow deviations by hs}
 
-```{r absolute stock and flow deviation by hs}
-.savePlot(lapply(mipIterations(.extractVariable(data, "stockDevHs"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = "hsr", facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "stockDevHs")
-.savePlot(lapply(mipIterations(.extractVariable(data, "conDevHs"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = "hsr", facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "conDevHs")
-.savePlot(lapply(mipIterations(.extractVariable(data, "renDevHs"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = "hsr", facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "renDevHs")
-.savePlot(lapply(mipIterations(.extractVariable(data, "flowDevHs"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = "hsr", facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "flowDevHs")
+.createCalibrationPlot(data, "stockDevHs", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
+
+.createCalibrationPlot(data, "conDevHs", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
+
+.createCalibrationPlot(data, "renDevHs", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
+
+.createCalibrationPlot(data, "flowDevHs", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
+
 ```
 
-## Relative deviation by hs
-
-Relative deviations by hs.
+## Relative deviations by heating system
 
 ```{r relative stock and flow deviation by hs}
-.savePlot(lapply(mipIterations(.extractVariable(data, "stockDevHsRel"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = "hsr", facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "stockDevHsRel")
 
-.savePlot(lapply(mipIterations(.extractVariable(data, "flowDevHsRel"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = "hsr", facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "flowDevHsRel")
+.createCalibrationPlot(data, "stockDevHsRel", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
 
-.savePlot(lapply(mipIterations(.extractVariable(data, "conDevHsRel"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = "hsr", facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "conDevHsRel")
-.savePlot(lapply(mipIterations(.extractVariable(data, "renDevHsRel"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = "hsr", facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "renDevHsRel")
+.createCalibrationPlot(data, "conDevHsRel", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
+
+.createCalibrationPlot(data, "renDevHsRel", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
+
+.createCalibrationPlot(data, "flowDevHsRel", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
+
 ```
 
 ## Step size
 
 ```{r step size}
 
-.savePlot(lapply(mipIterations(.extractVariable(data, "stepSize"),
-                               returnGgplots = TRUE,
-                               xAxis = "iteration", color = color, facets = c("typ", "loc"),
-                               slider = NULL, facetScales = "free"),
-                 .expandYToZero),
-          savePl, dirname(filePath[1]), nameAdd, "stepSize")
-
+.createCalibrationPlot(data, "stepSize", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
 ```
 
