@@ -14,7 +14,7 @@ set elements for each dimension}
 
 \item{brickSets}{named list with definition of common set elements}
 
-\item{silent}{boolean, suppress warnings and printing of dimension mapping}
+\item{silent}{logical, suppress warnings and printing of dimension mapping}
 }
 \value{
 nested named list with dimension mapping

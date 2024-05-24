@@ -4,6 +4,7 @@
 #' @param symbol character, name of gams object
 #' @param field character, field to read (only relevant for variables)
 #' @param asMagpie boolean, return Magpie object
+#' @param stringAsFactor logical, keep default factors from gams
 #' @returns MagPIE object with data of symbol
 #'
 #' @author Robin Hasse
@@ -12,7 +13,8 @@
 #' @importFrom dplyr select rename %>% all_of
 #' @importFrom magclass as.magpie
 #'
-readGdxSymbol <- function(gdx, symbol, field = "level", asMagpie = TRUE) {
+readGdxSymbol <- function(gdx, symbol, field = "level", asMagpie = TRUE,
+                          stringAsFactor = TRUE) {
 
   allFields <- c("level", "marginal", "lower", "upper", "scale")
 
@@ -35,18 +37,28 @@ readGdxSymbol <- function(gdx, symbol, field = "level", asMagpie = TRUE) {
 
   data <- obj$records
 
+  # convert factors to character
+  if (!stringAsFactor) {
+    for (dim in setdiff(colnames(data), "value")) {
+      data[[dim]] <- as.character(data[[dim]])
+    }
+  }
+
   # remove columns
-  data <- switch(class(obj)[1],
+  switch(class(obj)[1],
     Variable = {
-      data %>%
+      data <- data %>%
         select(-all_of(setdiff(allFields, field))) %>%
         rename(value = field)
     },
     Set = {
-      data %>%
+      data <- data %>%
         select(-"element_text")
-    },
-    data
+      if (isTRUE(asMagpie)) {
+        warning("Sets are not reported as Magpie object.")
+      }
+      asMagpie <- FALSE
+    }
   )
 
   # convert to MagPIE object

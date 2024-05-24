@@ -36,22 +36,12 @@ reportAgg <- function(x,
   }
   if (!setequal(dims, c(names(agg), names(rprt)))) {
     stop("Each of the following dimension has to be either aggregated or ",
-         "reported individually: ", paste(dims, collapse = ", "),
-         " You want to aggegate ", paste(names(agg), collapse = ", "),
+         "reported individually: ", paste(dims, collapse = ", "), ". ",
+         "You want to aggegate ", paste(names(agg), collapse = ", "),
          " and report ", paste(names(rprt), collapse = ", "), ".")
   }
 
-  # find all tags escaped in curly brackets
-  tagsInName <- gregexpr("\\{[a-z]+\\}", name)[[1]]
-  tagsInName <- if (all(tagsInName == -1)) {
-    NULL
-  } else {
-    unlist(lapply(seq_along(tagsInName), function(i) {
-      substr(name,
-             tagsInName[i] + 1,
-             tagsInName[i] + attr(tagsInName, "match.length")[i] - 2)
-    }))
-  }
+  tagsInName <- .findTags(name)
 
   # check if all reported dimensions are tagged in name
   if (is.null(rprt)) {
@@ -72,6 +62,7 @@ reportAgg <- function(x,
 
   # list with dimension elements to consider for aggregation and reporting
   map <- .constructDimMapping(agg, rprt, brickSets, silent)
+
   if (isFALSE(silent)) {
     message(map)
   }
@@ -114,7 +105,6 @@ reportAgg <- function(x,
     }, simplify = FALSE))
   }
 
-
   return(out)
 }
 
@@ -128,7 +118,7 @@ reportAgg <- function(x,
 #' @param agg named vector of dimensions to aggregate
 #' @param rprt named vector of dimensions to report individually
 #' @param brickSets named list with definition of common set elements
-#' @param silent boolean, suppress warnings and printing of dimension mapping
+#' @param silent logical, suppress warnings and printing of dimension mapping
 #' @returns nested named list with dimension mapping
 
 .constructDimMapping <- function(agg, rprt, brickSets, silent) {
@@ -187,7 +177,7 @@ reportAgg <- function(x,
 #' @param x MagPIE object, BRICK object
 #' @param agg named vector of dimensions to aggregate.
 #' @returns aggregated MagPIE objects without sub dimensions in dim 3
-#' @param silent boolean, suppress warnings and printing of dimension mapping
+#' @param silent logical, suppress warnings and printing of dimension mapping
 #'
 #' @importFrom magclass dimSums mselect
 
@@ -244,7 +234,7 @@ reportAgg <- function(x,
 
 
 
-#' Set names is not NULL
+#' Wrapper around setNames
 #'
 #' @param object MAgPIE object
 #' @param nm a vector of names current names should be replaced with. If only
@@ -258,4 +248,27 @@ reportAgg <- function(x,
     return(NULL)
   }
   setNames(object, nm)
+}
+
+
+
+
+
+#' Find all tags in name escaped in curly brackets
+#'
+#' @param name character, variable name
+#' @returns vector of tags in name, NULL if there are none
+
+.findTags <- function(name) {
+  tags <- gregexpr("\\{[a-z]+\\}", name)[[1]]
+  tags <- if (all(tags == -1)) {
+    NULL
+  } else {
+    unlist(lapply(seq_along(tags), function(i) {
+      substr(name,
+             tags[i] + 1,
+             tags[i] + attr(tags, "match.length")[i] - 2)
+    }))
+  }
+  return(tags)
 }

@@ -11,7 +11,7 @@
 
 \item{agg}{named vector of dimensions to aggregate.}
 
-\item{silent}{boolean, suppress warnings and printing of dimension mapping}
+\item{silent}{logical, suppress warnings and printing of dimension mapping}
 }
 \value{
 aggregated MagPIE objects without sub dimensions in dim 3
