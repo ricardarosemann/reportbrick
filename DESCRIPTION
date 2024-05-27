@@ -17,11 +17,14 @@ URL: https://github.com/pik-piam/reportbrick
 Imports:
   dplyr,
   gamstransfer (>= 3.0.1),
+  ggplot2,
+  knitr,
   madrat,
   magclass,
   mip (>= 0.148.15),
   piamPlotComparison,
   piamutils (>= 0.0.9),
+  purrr,
   rmarkdown,
   tidyr,
   yaml

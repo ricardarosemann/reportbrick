@@ -3,6 +3,7 @@ AutocreateReadme: yes
 AcceptedWarnings:
 - 'Warning: package ''.*'' was built under R version'
 - 'Warning: namespace ''.*'' is not available and has been replaced'
-AcceptedNotes: Namespaces in Imports field not imported from\:\n *.mip. .piamPlotComparison.
+AcceptedNotes: Namespaces in Imports field not imported from\:\n *.ggplot2. .knitr.
+  .mip. .piamPlotComparison. .purrr.
 allowLinterWarnings: no
 enforceVersionUpdate: no
