@@ -91,14 +91,14 @@ reportCalibration <- function(gdx) {
   flowDevRel <- .computeRelDev(flowDevAgg, list(p_constructionHist, p_renovationHist), tCalib)
 
   # Separately for all heating systems (hs)
-  stockDevHsRel <- .computeRelDev(stockDevHs, p_stockHist, tCalib)
+  stockDevHsRel <- .computeRelDev(stockDevHs, p_stockHist, tCalib, notInHist = "hsr")
 
-  conDevHsRel <- .computeRelDev(conDevHs, p_constructionHist, tCalib)
+  conDevHsRel <- .computeRelDev(conDevHs, p_constructionHist, tCalib, notInHist = "hsr")
 
-  renDevHsRel <- .computeRelDev(renDevHs, p_renovationHist, tCalib)
+  renDevHsRel <- .computeRelDev(renDevHs, p_renovationHist, tCalib, notInHist = "hsr")
 
-  flowDevHsRel <- .computeRelDev(flowDevHs, list(p_constructionHist, p_renovationHist), tCalib)
-
+  flowDevHsRel <- .computeRelDev(flowDevHs, list(p_constructionHist, p_renovationHist),
+                                  tCalib, notInHist = "hsr")
 
   # EXPAND DIMENSIONS AND COMBINE IN ONE DATA FRAME ----------------------------
   outList <- list(targetFunction = targetFunction, stepSize = stepSize,
@@ -241,10 +241,10 @@ reportCalibration <- function(gdx) {
 #'
 #' @importFrom dplyr %>% .data filter left_join mutate rename select
 
-.computeRelDev <- function(dfDev, dfHist, tCalib) {
+.computeRelDev <- function(dfDev, dfHist, tCalib, notInHist = NULL) {
 
   # Determine the reported columns in the calibration data
-  rprt <- setdiff(colnames(dfDev), c("iteration", "value"))
+  rprt <- setdiff(colnames(dfDev), c("iteration", "value", notInHist))
 
   # Convert historical data to list if necessary
   if (is.data.frame(dfHist)) dfHist <- list(dfHist)
