@@ -9,7 +9,7 @@ output:
 params:
     docTitle: "BRICK calibration report"
     cal: "BRICK_calibration_report.csv"
-    outputDir: "C:\\Users\\ricardar\\Documents\\Results\\BRICK\\calibration-tests\\stockszero-extrElec-vin\\lowEhp1-2010-30Iter0_1A_zero"
+    path: "C:\\Users\\ricardar\\Documents\\Results\\BRICK\\calibration-tests\\extrElec-vin\\lowEhp1-2010-30Iter0_1A"
     scenNames: NULL
     savePlots: TRUE
     name: ""
@@ -30,7 +30,7 @@ knitr::opts_chunk$set(
 ```{r set variables and functions, check existence of first file}
 
 # Assemble all file paths
-filePath <- file.path(params$outputDir, params$cal)
+filePath <- file.path(params$path, params$cal)
 
 # Check if at least one file in the given paths exists
 if (!any(file.exists(filePath))) {
@@ -76,14 +76,14 @@ outPath <- dirname(filePath[1])
 ```{r load data}
 
 if (length(filePath) == 1) {
-  data <- readr::read_csv(filePath)
+  data <- utils::read.csv(filePath)
   color <- NULL
 } else if (length(filePath) > 1) {
   # If more than one file path is given: Assemble all data in one data frame
   data <- data.frame()
   for (scen in names(filePath)) {
     if (file.exists(filePath[[scen]])) {
-      tmp <- readr::read_csv(filePath[[scen]]) %>%
+      tmp <- utils::read.csv(filePath[[scen]]) %>%
         mutate(scenario = scen, .before = 1)
       data <- rbind(data, tmp)
     } else {

@@ -5,7 +5,7 @@
 \title{Render the BRICK calibration plotting routine}
 \usage{
 plotBRICKCalib(
-  outputDir = ".",
+  path = ".",
   cal = "BRICK_calibration_report.csv",
   outName = "",
   scenNames = NULL,
@@ -13,7 +13,7 @@ plotBRICKCalib(
 )
 }
 \arguments{
-\item{outputDir}{(named) character vector, path(s) to output directories.
+\item{path}{(named) character vector, path(s) to output directories.
 If several paths are given, the names can be used to pass short scenario names.}
 
 \item{cal}{character vector, name(s) of file(s) with calibration reporting results}
@@ -21,7 +21,7 @@ If several paths are given, the names can be used to pass short scenario names.}
 \item{outName}{character, string added to the pdf file name and names of additionally saved plots}
 
 \item{scenNames}{character vector, scenario names for different paths.
-Needs to be specified if \code{outputDir} is unnamed and contains more than one element.}
+Needs to be specified if \code{path} is unnamed and contains more than one element.}
 
 \item{savePlots}{logical, whether all plots should additionally be saved as png}
 }

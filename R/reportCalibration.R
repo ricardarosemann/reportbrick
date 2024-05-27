@@ -6,9 +6,8 @@
 #'
 #' @author Ricarda Rosemann
 #'
-#' @importFrom readr write_csv
-#' @importFrom stringr str_extract
 #' @importFrom tidyr crossing replace_na
+#' @importFrom utils write.csv
 #' @export
 
 reportCalibration <- function(gdx) {
@@ -19,9 +18,9 @@ reportCalibration <- function(gdx) {
   path <- dirname(gdx)
 
   allFiles <- list.files(path = path,
-                         pattern = paste0(gsub("\\.gdx$", "", basename(gdx)),
-                                          "_\\d{1,3}.gdx"))
-  maxIter <- max(as.numeric(gsub("\\.gdx$", "", str_extract(allFiles, "\\d{1,3}.gdx$"))))
+                         pattern = paste0(sub("\\.gdx$", "", basename(gdx)),
+                                          "_\\d{1,3}\\.gdx"))
+  maxIter <- max(as.numeric(sub(".*_(\\d{1,3})\\.gdx$", "\\1", allFiles)))
 
   # Read relevant time periods
   tCalib <- readGdxSymbol(gdx, "tCalib", asMagpie = FALSE)[["ttot"]]
@@ -57,72 +56,69 @@ reportCalibration <- function(gdx) {
 
   p_renovationDev <- .computeDeviation(p_renovation, p_renovationHist)
 
+  # Start writing output quantities --------------------------------------------
+
+  out <- list()
+
+  out[["targetFunction"]] <- targetFunction
+
+  out[["stepSize"]] <- stepSize
 
   # AGGREGATE QUANTITIES -------------------------------------------------------
 
   # Aggregate across all dimensions
-  stockDevAgg <- .computeSumSq(p_stockDev, rprt = c("iteration", "reg", "typ", "loc", "inc"))
+  out[["stockDevAgg"]] <- .computeSumSq(p_stockDev, rprt = c("iteration", "reg", "typ", "loc", "inc"))
 
-  conDevAgg <- .computeSumSq(p_constructionDev, rprt = c("iteration", "reg", "typ", "loc", "inc"))
+  out[["conDevAgg"]] <- .computeSumSq(p_constructionDev, rprt = c("iteration", "reg", "typ", "loc", "inc"))
 
-  renDevAgg <- .computeSumSq(p_renovationDev, rprt = c("iteration", "reg", "typ", "loc", "inc"))
+  out[["renDevAgg"]] <- .computeSumSq(p_renovationDev, rprt = c("iteration", "reg", "typ", "loc", "inc"))
 
-  flowDevAgg <- .computeFlowSum(conDevAgg, renDevAgg)
+  out[["flowDevAgg"]] <- .computeFlowSum(out[["conDevAgg"]], out[["renDevAgg"]])
 
   # Aggregate by heating system (hs)
-  stockDevHs <- .computeSumSq(p_stockDev, rprt = c("iteration", "reg", "typ", "loc", "inc", "hsr"))
+  out[["stockDevHs"]] <- .computeSumSq(p_stockDev, rprt = c("iteration", "reg", "typ", "loc", "inc", "hsr"))
 
-  conDevHs <- .computeSumSq(p_constructionDev, rprt = c("iteration", "reg", "typ", "loc", "inc", "hsr"))
+  out[["conDevHs"]] <- .computeSumSq(p_constructionDev, rprt = c("iteration", "reg", "typ", "loc", "inc", "hsr"))
 
-  renDevHs <- .computeSumSq(p_renovationDev, rprt = c("iteration", "reg", "typ", "loc", "inc", "hsr"))
+  out[["renDevHs"]] <- .computeSumSq(p_renovationDev, rprt = c("iteration", "reg", "typ", "loc", "inc", "hsr"))
 
-  flowDevHs <- .computeFlowSum(conDevHs, renDevHs)
+  out[["flowDevHs"]] <- .computeFlowSum(out[["conDevHs"]], out[["renDevHs"]])
 
 
   # COMPUTE RELATIVE AGGREGATE QUANTITIES --------------------------------------
 
   # Across all dimensions
-  stockDevRel <- .computeRelDev(stockDevAgg, p_stockHist, tCalib)
+  out[["stockDevRel"]] <- .computeRelDev(out[["stockDevAgg"]], p_stockHist, tCalib)
 
-  conDevRel <- .computeRelDev(conDevAgg, p_constructionHist, tCalib)
+  out[["conDevRel"]] <- .computeRelDev(out[["conDevAgg"]], p_constructionHist, tCalib)
 
-  renDevRel <- .computeRelDev(renDevAgg, p_renovationHist, tCalib)
+  out[["renDevRel"]] <- .computeRelDev(out[["renDevAgg"]], p_renovationHist, tCalib)
 
-  flowDevRel <- .computeRelDev(flowDevAgg, list(p_constructionHist, p_renovationHist), tCalib)
+  out[["flowDevRel"]] <- .computeRelDev(out[["flowDevAgg"]], list(p_constructionHist, p_renovationHist), tCalib)
 
   # Separately for all heating systems (hs)
-  stockDevHsRel <- .computeRelDev(stockDevHs, p_stockHist, tCalib, notInHist = "hsr")
+  out[["stockDevHsRel"]] <- .computeRelDev(out[["stockDevHs"]], p_stockHist, tCalib, notInHist = "hsr")
 
-  conDevHsRel <- .computeRelDev(conDevHs, p_constructionHist, tCalib, notInHist = "hsr")
+  out[["conDevHsRel"]] <- .computeRelDev(out[["conDevHs"]], p_constructionHist, tCalib, notInHist = "hsr")
 
-  renDevHsRel <- .computeRelDev(renDevHs, p_renovationHist, tCalib, notInHist = "hsr")
+  out[["renDevHsRel"]] <- .computeRelDev(out[["renDevHs"]], p_renovationHist, tCalib, notInHist = "hsr")
 
-  flowDevHsRel <- .computeRelDev(flowDevHs, list(p_constructionHist, p_renovationHist),
-                                  tCalib, notInHist = "hsr")
+  out[["flowDevHsRel"]] <- .computeRelDev(out[["flowDevHs"]], list(p_constructionHist, p_renovationHist),
+                                          tCalib, notInHist = "hsr")
 
   # EXPAND DIMENSIONS AND COMBINE IN ONE DATA FRAME ----------------------------
-  outList <- list(targetFunction = targetFunction, stepSize = stepSize,
-                  stockDevAgg = stockDevAgg, conDevAgg = conDevAgg,
-                  renDevAgg = renDevAgg, flowDevAgg = flowDevAgg,
-                  stockDevHs = stockDevHs, conDevHs = conDevHs,
-                  renDevHs = renDevHs, flowDevHs = flowDevHs,
-                  stockDevRel = stockDevRel, conDevRel = conDevRel,
-                  renDevRel = renDevRel, flowDevRel = flowDevRel,
-                  stockDevHsRel = stockDevHsRel, conDevHsRel = conDevHsRel,
-                  renDevHsRel = renDevHsRel, flowDevHsRel = flowDevHsRel)
 
   # Determine all dimensions present in output data
-  allSets <- unique(unlist(lapply(outList, colnames)))
+  allSets <- unique(unlist(lapply(out, colnames)))
 
-  out <- data.frame()
-  for (varName in names(outList)) {
-    out <- rbind(out, .expandDims(outList[[varName]], varName, allSets))
-  }
+  out <- do.call(rbind, lapply(names(out), function(varName) {
+    .expandDims(out[[varName]], varName, allSets)
+  }))
 
 
   # WRITE OUTPUT FILE ----------------------------------------------------------
 
-  write_csv(out, file.path(path, "BRICK_calibration_report.csv"))
+  write.csv(out, file.path(path, "BRICK_calibration_report.csv"), row.names = FALSE)
 
 }
 
@@ -225,8 +221,7 @@ reportCalibration <- function(gdx) {
 
   df %>%
     group_by(across(any_of(rprt))) %>%
-    summarise(value = sum(.data[["value"]] ^ 2, na.rm = TRUE), .groups = "keep") %>%
-    ungroup()
+    summarise(value = sum(.data[["value"]] ^ 2, na.rm = TRUE), .groups = "drop")
 
 }
 
@@ -237,6 +232,8 @@ reportCalibration <- function(gdx) {
 #'  The option to pass two data frames is used to combine construction and renovation flows.
 #'  If two data frames are passed, the first one is assumed to be construction, the second renovation
 #' @param tCalib numerical/factor, calibration time periods to filter historical data
+#' @param notInHist character vector, pass columns that historical data should not be grouped by
+#'  when computing the sum of the squares
 #' @returns data frame with relative deviation in value column
 #'
 #' @importFrom dplyr %>% .data filter left_join mutate rename select
@@ -251,9 +248,9 @@ reportCalibration <- function(gdx) {
 
   # Compute the sum of the squares for historical data
   dfHistSumList <- lapply(dfHist, function(df) {
-    .computeSumSq(df %>%
-                    filter(.data[["ttot"]] %in% tCalib),
-                  rprt = rprt)
+    df %>%
+      filter(.data[["ttot"]] %in% tCalib) %>%
+      .computeSumSq(rprt = rprt)
   })
 
   if (length(dfHistSumList) == 1) {
