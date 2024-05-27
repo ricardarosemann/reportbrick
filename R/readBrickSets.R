@@ -22,6 +22,7 @@ readBrickSets <- function(tmpl) {
     }
     brickSets[names(customBrickSets)] <- customBrickSets
   }
+  message("Read reporting template: ", file)
 
   # duplicate aliases
   brickSetsExplicit <- list()

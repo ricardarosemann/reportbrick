@@ -15,9 +15,14 @@
 #' @author Robin Hasse
 #'
 #' @importFrom magclass mbind add_dimension write.report getSets<-
+#' @importFrom utils capture.output
 #' @export
 
-convGDX2MIF <- function(gdx, tmpl = NULL, file = NULL, scenario = "default", t = NULL) {
+convGDX2MIF <- function(gdx,
+                        tmpl = NULL,
+                        file = NULL,
+                        scenario = "default",
+                        t = NULL) {
 
   # PREPARE --------------------------------------------------------------------
 
@@ -27,6 +32,17 @@ convGDX2MIF <- function(gdx, tmpl = NULL, file = NULL, scenario = "default", t =
   }
 
   brickSets <- readBrickSets(tmpl)
+  setElements <- .findInconsistenSetElements(brickSets, gdx)
+  if (!is.null(setElements[["surplus"]])) {
+    warning("The following set elements are mapped in the reporting template ",
+            "but not found in the gdx:\n  ",
+            paste(capture.output(setElements[["surplus"]]), collapse = "\n  "))
+  }
+  if (!is.null(setElements[["missing"]])) {
+    stop("The following set elements are found in the gdx but not mapped in ",
+         "the reporting template:\n  ",
+         paste(capture.output(setElements[["missing"]]), collapse = "\n  "))
+  }
 
   # central object containing all output data
   output <- NULL
@@ -71,4 +87,32 @@ convGDX2MIF <- function(gdx, tmpl = NULL, file = NULL, scenario = "default", t =
     return(output)
   }
 
+}
+
+
+
+#' Find inconsistencies in set elements between reporting template and gdx
+#'
+#' @param brickSets character, BRICK reporting template
+#' @param gdx file path to a BRICK gdx
+#' @returns named list of missing and surplus sets elements
+
+.findInconsistenSetElements <- function(brickSets, gdx) {
+  out <- do.call(rbind, lapply(names(brickSets), function(s) {
+    elementsGdx <- as.character(readGdxSymbol(gdx, s, asMagpie = FALSE)[[1]])
+    elementsMap <- names(brickSets[[s]][["elements"]])
+    inconsistencies <- list(missing = setdiff(elementsGdx, elementsMap),
+                            surplus = setdiff(elementsMap, elementsGdx))
+    do.call(rbind, lapply(names(inconsistencies), function(i) {
+      if (length(inconsistencies[[i]]) > 0) {
+        data.frame(set = s, inconsistency = i, element = inconsistencies[[i]])
+      } else {
+        NULL
+      }
+    }))
+  }))
+  if (is.null(out)) {
+    return(NULL)
+  }
+  split(out[c("set", "element")], out[["inconsistency"]])
 }
