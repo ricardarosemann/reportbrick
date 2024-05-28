@@ -1,22 +1,32 @@
 Type: Package
 Package: reportbrick
 Title: Reporting package for BRICK
-Version: 0.2.0
-Date: 2024-05-08
-Authors@R:
+Version: 0.3.0
+Date: 2024-05-27
+Authors@R: c(
     person("Robin", "Hasse", , "robin.hasse@pik-potsdam.de",
            role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0003-1818-3186"))
+           comment = c(ORCID = "0000-0003-1818-3186")),
+    person("Ricarda", "Rosemann", , "ricarda.rosemann@pik-potsdam.de",
+           role = "aut",
+           comment = c(ORCID = "0009-0006-5939-3197"))
+    )
 Description: This package contains BRICK-specific routines to report model results. The main functionality is to generate a mif-file from a given BRICK model run folder.
 License: LGPL-3
 URL: https://github.com/pik-piam/reportbrick
 Imports:
   dplyr,
   gamstransfer (>= 3.0.1),
+  ggplot2,
+  knitr,
   madrat,
   magclass,
   mip (>= 0.148.15),
   piamPlotComparison,
+  piamutils (>= 0.0.9),
+  purrr,
+  rmarkdown,
+  tidyr,
   yaml
 Suggests:
     covr,

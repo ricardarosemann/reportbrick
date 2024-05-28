@@ -1,0 +1,187 @@
+---
+title: "`r params$docTitle`"
+date: "`r format(Sys.Date())`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    fig_caption: false
+params:
+    docTitle: "BRICK calibration report"
+    cal: "BRICK_calibration_report.csv"
+    path: "C:\\Users\\ricardar\\Documents\\Results\\BRICK\\calibration-tests\\extrElec-vin\\lowEhp1-2010-30Iter0_1A"
+    scenNames: NULL
+    savePlots: TRUE
+    name: ""
+---
+
+```{r setup, include=FALSE}
+library(dplyr) #nolint: undesirable_function_linter.
+
+knitr::opts_chunk$set(
+  echo = FALSE,
+  error = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+
+```{r set variables and functions, check existence of first file}
+
+# Assemble all file paths
+filePath <- file.path(params$path, params$cal)
+
+# Check if at least one file in the given paths exists
+if (!any(file.exists(filePath))) {
+  message("No BRICK_calibration_report.csv file found",
+          "BRICK_calibration_calibration.csv is normally produced during calibration runs.")
+  knitr::knit_exit()
+}
+
+# Extract parameters
+if (!is.null(params$scenNames)) {
+  names(filePath) <- params$scenNames
+}
+
+savePlots <- params$savePlots
+outName <- params$name
+outPath <- dirname(filePath[1])
+
+# Standard procedure to write a calibration plot
+.createCalibrationPlot <- function(data, varName, outPath, outName = "",
+                                   color = NULL, savePlots = FALSE) {
+  # Extract the data
+  plData <- data %>%
+    filter(.data[["variable"]] == varName) %>%
+    select(where(~ any(!is.na(.x))))
+  # Create the plots
+  plList <- mip::mipIterations(plData, returnGgplots = TRUE, xAxis = "iteration",
+                               color = color, facets = c("loc", "typ"),
+                               slider = NULL, facetScales = "free")
+  # Modify, save and show the plots
+  purrr::walk(plList, function(pl) {
+    pl <- pl + ggplot2::expand_limits(y = 0)
+    # Currently, this overwrites previous plots so that only the last one remains
+    if (isTRUE(savePlots)) {
+      ggplot2::ggsave(file.path(outPath, paste0(paste(varName, outName, sep = "_"), ".png")), pl)
+    }
+    print(pl)
+  })
+}
+
+```
+
+
+```{r load data}
+
+if (length(filePath) == 1) {
+  data <- utils::read.csv(filePath)
+  color <- NULL
+} else if (length(filePath) > 1) {
+  # If more than one file path is given: Assemble all data in one data frame
+  data <- data.frame()
+  for (scen in names(filePath)) {
+    if (file.exists(filePath[[scen]])) {
+      tmp <- utils::read.csv(filePath[[scen]]) %>%
+        mutate(scenario = scen, .before = 1)
+      data <- rbind(data, tmp)
+    } else {
+      warning("The file", filePath[[scen]], "does not exist and was skipped.")
+    }
+  }
+  color <- "scenario"
+}
+
+```
+
+## Target function
+
+```{r target function}
+
+.createCalibrationPlot(data, "targetFunction", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
+
+```
+
+## Absolute stock and flow deviations
+
+```{r absolute stock and flow deviations}
+
+.createCalibrationPlot(data, "stockDevAgg", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
+
+.createCalibrationPlot(data, "conDevAgg", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
+
+.createCalibrationPlot(data, "renDevAgg", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
+
+.createCalibrationPlot(data, "flowDevAgg", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
+
+```
+
+
+## Relative stock and flow deviations
+
+```{r relative stock and flow deviations}
+
+.createCalibrationPlot(data, "stockDevRel", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
+
+.createCalibrationPlot(data, "conDevRel", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
+
+.createCalibrationPlot(data, "renDevRel", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
+
+.createCalibrationPlot(data, "flowDevRel", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
+
+```
+
+## Absolute deviations by heating system
+
+```{r absolute stock and flow deviations by hs}
+
+.createCalibrationPlot(data, "stockDevHs", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
+
+.createCalibrationPlot(data, "conDevHs", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
+
+.createCalibrationPlot(data, "renDevHs", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
+
+.createCalibrationPlot(data, "flowDevHs", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
+
+```
+
+## Relative deviations by heating system
+
+```{r relative stock and flow deviation by hs}
+
+.createCalibrationPlot(data, "stockDevHsRel", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
+
+.createCalibrationPlot(data, "conDevHsRel", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
+
+.createCalibrationPlot(data, "renDevHsRel", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
+
+.createCalibrationPlot(data, "flowDevHsRel", outPath, outName = outName,
+                       color = "hsr", savePlots = savePlots)
+
+```
+
+## Step size
+
+```{r step size}
+
+.createCalibrationPlot(data, "stepSize", outPath, outName = outName,
+                       color = color, savePlots = savePlots)
+```
+
