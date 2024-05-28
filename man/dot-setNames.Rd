@@ -2,7 +2,7 @@
 % Please edit documentation in R/reportAgg.R
 \name{.setNames}
 \alias{.setNames}
-\title{Set names is not NULL}
+\title{Wrapper around setNames}
 \usage{
 .setNames(object, nm)
 }
@@ -16,5 +16,5 @@ one data element exists you can also set the name to NULL.}
 NULL if object is NULL else object with manipulated names
 }
 \description{
-Set names is not NULL
+Wrapper around setNames
 }

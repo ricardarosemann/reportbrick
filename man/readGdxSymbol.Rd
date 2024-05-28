@@ -4,7 +4,13 @@
 \alias{readGdxSymbol}
 \title{Read symbol from gams container}
 \usage{
-readGdxSymbol(gdx, symbol, field = "level", asMagpie = TRUE)
+readGdxSymbol(
+  gdx,
+  symbol,
+  field = "level",
+  asMagpie = TRUE,
+  stringAsFactor = TRUE
+)
 }
 \arguments{
 \item{gdx}{character, file path to GDX file}
@@ -14,6 +20,8 @@ readGdxSymbol(gdx, symbol, field = "level", asMagpie = TRUE)
 \item{field}{character, field to read (only relevant for variables)}
 
 \item{asMagpie}{boolean, return Magpie object}
+
+\item{stringAsFactor}{logical, keep default factors from gams}
 }
 \value{
 MagPIE object with data of symbol

@@ -47,6 +47,10 @@ convGDX2MIF <- function(gdx, tmpl = NULL, file = NULL, scenario = "default", t =
   message("running reportDemolition ...")
   output <- mbind(output, reportDemolition(gdx, brickSets)[, t, ])
 
+  ## Energy ====
+  message("running reportEnergy ...")
+  output <- mbind(output, reportEnergy(gdx, brickSets)[, t, ])
+
 
   # FINISH ---------------------------------------------------------------------
 

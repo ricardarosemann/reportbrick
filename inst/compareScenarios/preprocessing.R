@@ -1,7 +1,10 @@
 # Load additional libraries ----------------------------------------------------
 
-library(dplyr) # nolint: undesirable_function_linter.
-
+# nolint start: undesirable_function_linter.
+library(dplyr, include.only = "%>%")
+library(mip, include.only = c("showAreaAndBarPlots", "showLinePlots"))
+library(purrr, include.only = c("walk"))
+# nolint end
 
 
 # BRICK sets -------------------------------------------------------------------
@@ -21,11 +24,19 @@ location <- c(
   "Rural"
 )
 heating <- c(
-  "Biomass",
+  "Biomass heater",
   "District heating",
   "Heat pump",
   "Resistive electric",
-  "Gas",
+  "Gas heater",
+  "Liquids heater",
+  "Coal heater"
+)
+carrier <- c(
+  "Biomass",
+  "Heat",
+  "Electricity",
+  "Gases",
   "Liquids",
   "Coal"
 )

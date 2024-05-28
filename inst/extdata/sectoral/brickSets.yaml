@@ -18,18 +18,32 @@ bsr:
 hsr:
   alias: hs
   elements:
-    biom: Biomass
+    biom: Biomass heater
     dihe: District heating
     ehp1: Heat pump
     reel: Resistive electric
-    gabo: Gas
-    libo: Liquids
-    sobo: Coal
+    gabo: Gas heater
+    libo: Liquids heater
+    sobo: Coal heater
     "0": No change
   subsets:
     all: [biom, dihe, ehp1, reel, gabo, libo, sobo]
     all0: [biom, dihe, ehp1, reel, gabo, libo, sobo, "0"]
     elec: [ehp1, reel]
+
+
+## Energy carrier ====
+carrier:
+  elements:
+    biomod: Biomass
+    heat: Heat
+    elec: Electricity
+    gases: Gases
+    liquids: Liquids
+    coal: Coal
+  subsets:
+    all: [biomod, heat, elec, gases, liquids, coal]
+    solids: [biomod, coal]
 
 
 ## Vintage ====
