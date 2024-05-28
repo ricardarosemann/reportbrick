@@ -15,7 +15,7 @@
 #' @author Robin Hasse
 #'
 #' @importFrom magclass getSets
-#' @importFrom utils tail
+#' @importFrom utils tail capture.output
 
 reportAgg <- function(x,
                       name,
@@ -63,8 +63,18 @@ reportAgg <- function(x,
   # list with dimension elements to consider for aggregation and reporting
   map <- .constructDimMapping(agg, rprt, brickSets, silent)
 
+  nullInMap <- unlist(lapply(map, function(x) unlist(lapply(x, is.null))))
+  if (any(nullInMap)) {
+    if (isFALSE(silent)) {
+      message("Can't report '", name, "' as mapping can't be constructed for ",
+              paste(names(nullInMap)[nullInMap], collapse = ", "), ".")
+    }
+    return(NULL)
+  }
+
   if (isFALSE(silent)) {
-    message(map)
+    message("For the variable '", name, "' using this map:\n  ",
+            paste(capture.output(map), collapse = "\n  "))
   }
 
 
@@ -141,8 +151,8 @@ reportAgg <- function(x,
           return(brickSets[[d]][["subsets"]][[val]])
         } else {
           if (isFALSE(silent)) {
-            warning("No correspondant for '", val, "' as an element of'"
-                    , d, " in brick sets file: ", attr(brickSets, "file"))
+            message("No correspondant for '", val, "' as an element of '", d,
+                    "' in brick sets file: ", attr(brickSets, "file"))
           }
           return(list(NULL))
         }

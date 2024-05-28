@@ -4,12 +4,14 @@
 \alias{reportEnergy}
 \title{Report energy demand}
 \usage{
-reportEnergy(gdx, brickSets = NULL)
+reportEnergy(gdx, brickSets = NULL, silent = TRUE)
 }
 \arguments{
 \item{gdx}{gams transfer container of the BRICK GDX}
 
 \item{brickSets}{character, BRICK reporting template}
+
+\item{silent}{boolean, suppress warnings and printing of dimension mapping}
 }
 \description{
 Report final and useful energy demand for space heating

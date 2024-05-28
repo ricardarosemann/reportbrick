@@ -4,7 +4,14 @@
 \alias{convGDX2MIF}
 \title{Read in GDX from BRICK and write *.mif reporting}
 \usage{
-convGDX2MIF(gdx, tmpl = NULL, file = NULL, scenario = "default", t = NULL)
+convGDX2MIF(
+  gdx,
+  tmpl = NULL,
+  file = NULL,
+  scenario = "default",
+  t = NULL,
+  silent = TRUE
+)
 }
 \arguments{
 \item{gdx}{file path to a BRICK gdx}
@@ -19,6 +26,8 @@ returned}
 \item{scenario}{scenario name that is used in the *.mif reporting}
 
 \item{t}{numeric vector of reporting periods (years)}
+
+\item{silent}{boolean, suppress warnings and printing of dimension mapping}
 }
 \description{
 Read in all information from GDX file that was generated with BRICK and

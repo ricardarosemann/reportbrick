@@ -11,6 +11,7 @@
 #'   returned
 #' @param scenario scenario name that is used in the *.mif reporting
 #' @param t numeric vector of reporting periods (years)
+#' @param silent boolean, suppress warnings and printing of dimension mapping
 #'
 #' @author Robin Hasse
 #'
@@ -22,7 +23,8 @@ convGDX2MIF <- function(gdx,
                         tmpl = NULL,
                         file = NULL,
                         scenario = "default",
-                        t = NULL) {
+                        t = NULL,
+                        silent = TRUE) {
 
   # PREPARE --------------------------------------------------------------------
 
@@ -53,19 +55,19 @@ convGDX2MIF <- function(gdx,
 
   ## Stock ====
   message("running reportBuildingStock ...")
-  output <- mbind(output, reportBuildingStock(gdx, brickSets)[, t, ])
+  output <- mbind(output, reportBuildingStock(gdx, brickSets, silent = silent)[, t, ])
 
   ## Construction ====
   message("running reportConstruction ...")
-  output <- mbind(output, reportConstruction(gdx, brickSets)[, t, ])
+  output <- mbind(output, reportConstruction(gdx, brickSets, silent = silent)[, t, ])
 
   ## Demolition ====
   message("running reportDemolition ...")
-  output <- mbind(output, reportDemolition(gdx, brickSets)[, t, ])
+  output <- mbind(output, reportDemolition(gdx, brickSets, silent = silent)[, t, ])
 
   ## Energy ====
   message("running reportEnergy ...")
-  output <- mbind(output, reportEnergy(gdx, brickSets)[, t, ])
+  output <- mbind(output, reportEnergy(gdx, brickSets, silent = silent)[, t, ])
 
 
   # FINISH ---------------------------------------------------------------------
