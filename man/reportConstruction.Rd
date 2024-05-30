@@ -4,12 +4,14 @@
 \alias{reportConstruction}
 \title{Report construction}
 \usage{
-reportConstruction(gdx, brickSets = NULL)
+reportConstruction(gdx, brickSets = NULL, silent = TRUE)
 }
 \arguments{
 \item{gdx}{gams transfer container of the BRICK GDX}
 
 \item{brickSets}{character, BRICK reporting template}
+
+\item{silent}{boolean, suppress warnings and printing of dimension mapping}
 }
 \description{
 Report quantities describing the construction of new buildings

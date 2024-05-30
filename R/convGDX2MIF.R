@@ -11,13 +11,21 @@
 #'   returned
 #' @param scenario scenario name that is used in the *.mif reporting
 #' @param t numeric vector of reporting periods (years)
+#' @param silent boolean, suppress warnings and printing of dimension mapping
 #'
 #' @author Robin Hasse
 #'
 #' @importFrom magclass mbind add_dimension write.report getSets<-
+#' @importFrom utils capture.output
+#' @importFrom gamstransfer Container
 #' @export
 
-convGDX2MIF <- function(gdx, tmpl = NULL, file = NULL, scenario = "default", t = NULL) {
+convGDX2MIF <- function(gdx,
+                        tmpl = NULL,
+                        file = NULL,
+                        scenario = "default",
+                        t = NULL,
+                        silent = TRUE) {
 
   # PREPARE --------------------------------------------------------------------
 
@@ -27,6 +35,11 @@ convGDX2MIF <- function(gdx, tmpl = NULL, file = NULL, scenario = "default", t =
   }
 
   brickSets <- readBrickSets(tmpl)
+  inconsistencies <- .findInconsistenSetElements(brickSets, gdx)
+  if (!is.null(inconsistencies)) {
+    stop("The reporting template is not consistent with the gdx:\n  ",
+         paste(capture.output(inconsistencies), collapse = "\n  "))
+  }
 
   # central object containing all output data
   output <- NULL
@@ -37,19 +50,19 @@ convGDX2MIF <- function(gdx, tmpl = NULL, file = NULL, scenario = "default", t =
 
   ## Stock ====
   message("running reportBuildingStock ...")
-  output <- mbind(output, reportBuildingStock(gdx, brickSets)[, t, ])
+  output <- mbind(output, reportBuildingStock(gdx, brickSets, silent = silent)[, t, ])
 
   ## Construction ====
   message("running reportConstruction ...")
-  output <- mbind(output, reportConstruction(gdx, brickSets)[, t, ])
+  output <- mbind(output, reportConstruction(gdx, brickSets, silent = silent)[, t, ])
 
   ## Demolition ====
   message("running reportDemolition ...")
-  output <- mbind(output, reportDemolition(gdx, brickSets)[, t, ])
+  output <- mbind(output, reportDemolition(gdx, brickSets, silent = silent)[, t, ])
 
   ## Energy ====
   message("running reportEnergy ...")
-  output <- mbind(output, reportEnergy(gdx, brickSets)[, t, ])
+  output <- mbind(output, reportEnergy(gdx, brickSets, silent = silent)[, t, ])
 
 
   # FINISH ---------------------------------------------------------------------
@@ -71,4 +84,30 @@ convGDX2MIF <- function(gdx, tmpl = NULL, file = NULL, scenario = "default", t =
     return(output)
   }
 
+}
+
+
+
+#' Find inconsistencies in set elements between reporting template and gdx
+#'
+#' @param brickSets character, BRICK reporting template
+#' @param gdx file path to a BRICK gdx
+#' @returns named list of missing and surplus sets elements
+
+.findInconsistenSetElements <- function(brickSets, gdx) {
+  m <- Container$new(gdx)
+  setsGdx <- setNames(m$getSymbols(names(brickSets)), names(brickSets))
+  do.call(rbind, lapply(names(brickSets), function(s) {
+    elementsGdx <- as.character(setsGdx[[s]]$records[[1]])
+    elementsMap <- names(brickSets[[s]][["elements"]])
+    inconsistencies <- list(missing = setdiff(elementsGdx, elementsMap),
+                            surplus = setdiff(elementsMap, elementsGdx))
+    do.call(rbind, lapply(names(inconsistencies), function(i) {
+      if (length(inconsistencies[[i]]) > 0) {
+        data.frame(set = s, element = inconsistencies[[i]], inconsistency = i)
+      } else {
+        NULL
+      }
+    }))
+  }))
 }
