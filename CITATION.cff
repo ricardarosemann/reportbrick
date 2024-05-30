@@ -3,7 +3,7 @@ message: If you use this software, please cite it using the metadata from this f
 type: software
 title: 'reportbrick: Reporting package for BRICK'
 version: 0.4.1
-date-released: '2024-05-28'
+date-released: '2024-05-30'
 abstract: This package contains BRICK-specific routines to report model results. The
   main functionality is to generate a mif-file from a given BRICK model run folder.
 authors:

@@ -17,6 +17,7 @@
 #'
 #' @importFrom magclass mbind add_dimension write.report getSets<-
 #' @importFrom utils capture.output
+#' @importFrom gamstransfer Container
 #' @export
 
 convGDX2MIF <- function(gdx,
@@ -34,16 +35,10 @@ convGDX2MIF <- function(gdx,
   }
 
   brickSets <- readBrickSets(tmpl)
-  setElements <- .findInconsistenSetElements(brickSets, gdx)
-  if (!is.null(setElements[["surplus"]])) {
-    warning("The following set elements are mapped in the reporting template ",
-            "but not found in the gdx:\n  ",
-            paste(capture.output(setElements[["surplus"]]), collapse = "\n  "))
-  }
-  if (!is.null(setElements[["missing"]])) {
-    stop("The following set elements are found in the gdx but not mapped in ",
-         "the reporting template:\n  ",
-         paste(capture.output(setElements[["missing"]]), collapse = "\n  "))
+  inconsistencies <- .findInconsistenSetElements(brickSets, gdx)
+  if (!is.null(inconsistencies)) {
+    stop("The reporting template is not consistent with the gdx:\n  ",
+         paste(capture.output(inconsistencies), collapse = "\n  "))
   }
 
   # central object containing all output data
@@ -100,21 +95,19 @@ convGDX2MIF <- function(gdx,
 #' @returns named list of missing and surplus sets elements
 
 .findInconsistenSetElements <- function(brickSets, gdx) {
-  out <- do.call(rbind, lapply(names(brickSets), function(s) {
-    elementsGdx <- as.character(readGdxSymbol(gdx, s, asMagpie = FALSE)[[1]])
+  m <- Container$new(gdx)
+  setsGdx <- setNames(m$getSymbols(names(brickSets)), names(brickSets))
+  do.call(rbind, lapply(names(brickSets), function(s) {
+    elementsGdx <- as.character(setsGdx[[s]]$records[[1]])
     elementsMap <- names(brickSets[[s]][["elements"]])
     inconsistencies <- list(missing = setdiff(elementsGdx, elementsMap),
                             surplus = setdiff(elementsMap, elementsGdx))
     do.call(rbind, lapply(names(inconsistencies), function(i) {
       if (length(inconsistencies[[i]]) > 0) {
-        data.frame(set = s, inconsistency = i, element = inconsistencies[[i]])
+        data.frame(set = s, element = inconsistencies[[i]], inconsistency = i)
       } else {
         NULL
       }
     }))
   }))
-  if (is.null(out)) {
-    return(NULL)
-  }
-  split(out[c("set", "element")], out[["inconsistency"]])
 }
