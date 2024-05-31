@@ -62,7 +62,7 @@ plotBRICKCalib <- function(path = ".", cal = "BRICK_calibration_report.csv",
   render(
     file.path(finalOutputDir, "plotsCalibration.Rmd"),
     output_dir = finalOutputDir,
-    output_file = paste0("CES_calibration_report_", outName, ".pdf"),
+    output_file = paste0("BRICK_calibration_report_", outName, ".pdf"),
     output_format = "pdf_document",
     params = yamlParams
   )

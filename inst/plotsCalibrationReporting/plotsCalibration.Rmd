@@ -9,7 +9,7 @@ output:
 params:
     docTitle: "BRICK calibration report"
     cal: "BRICK_calibration_report.csv"
-    path: "C:\\Users\\ricardar\\Documents\\Results\\BRICK\\calibration-tests\\extrElec-vin\\lowEhp1-2010-30Iter0_1A"
+    path: "C:\\Users\\ricardar\\Documents\\Results\\BRICK\\calibration-tests\\extrElec-vin"
     scenNames: NULL
     savePlots: TRUE
     name: ""
@@ -34,8 +34,8 @@ filePath <- file.path(params$path, params$cal)
 
 # Check if at least one file in the given paths exists
 if (!any(file.exists(filePath))) {
-  message("No BRICK_calibration_report.csv file found",
-          "BRICK_calibration_calibration.csv is normally produced during calibration runs.")
+  message("No BRICK_calibration_report.csv file found.\n",
+          "BRICK_calibration_report.csv is normally produced during calibration runs.")
   knitr::knit_exit()
 }
 
