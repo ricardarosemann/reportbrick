@@ -16,6 +16,7 @@ params:
     name: ""
     figWidth: 15 
     figHeight: 10
+    customPlots: NULL
 ---
 
 ```{r setup, include=FALSE}
@@ -445,3 +446,20 @@ if (all(c("stockDevVinRel", "renDevVinRel") %in% data$variable)) {
 .createCalibrationPlot(data, "descDirRenLate", outPath, outName = outName,
                        color = "hsr", savePlots = savePlots)
 ```
+
+
+# Additional custom plots
+
+```{r additional custom plots}
+for (cpl in customPlots) {
+  dataCpl <- data
+  if ("col" %in% names(cpl) && "val" %in% names(cpl)) {
+    dataCpl <- dataCpl %>%
+      filter(.data[[cpl[["col"]]]] %in% cpl[["val"]])
+  }
+  .createCalibrationPlot(dataCpl, cpl[["variable"]], outPath,
+                         outName = paste(outName, cpl[["col"]], cpl[["val"]], sep = "-"),
+                         color = if ("color" %in% names(cpl)) cpl[["color"]] else NULL,
+                         facets = if ("facets" %in% names(cpl)) cpl[["facets"]] else c("loc", "typ"),
+                         savePlots = savePlots, yToZero = FALSE)
+}

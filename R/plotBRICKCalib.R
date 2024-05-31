@@ -9,6 +9,9 @@
 #' @param scenNames character vector, scenario names for different paths.
 #'  Needs to be specified if \code{path} is unnamed and contains more than one element.
 #' @param savePlots logical, whether all plots should additionally be saved as png
+#' @param customPlots list, containing lists of the form \code{list(variable = [, col = , val = , color = , facets = ])}
+#'  Produces a plot of the given \code{variable}(s), with column \code{col} filtered for values \code{value},
+#'  colored by \code{color} if specified and facets according to \code{facets}.
 #'
 #' @author Ricarda Rosemann
 #'
@@ -18,7 +21,7 @@
 
 plotBRICKCalib <- function(path = ".", cal = "BRICK_calibration_report.csv",
                            outName = "", scenNames = NULL,
-                           savePlots = FALSE) {
+                           savePlots = FALSE, customPlots = NULL) {
 
   # Extract the scenario name from the output directory
   scenario <- sub("_\\d{4}-\\d{2}-\\d{2}_\\d{2}\\.\\d{2}\\.\\d{2}", "", basename(path))
@@ -45,7 +48,8 @@ plotBRICKCalib <- function(path = ".", cal = "BRICK_calibration_report.csv",
     docTitle = paste("BRICK Calibration Report", paste(scenario, collapse = " - ")),
     scenNames = scenNames,
     name = outName,
-    savePlots = savePlots
+    savePlots = savePlots,
+    customPlots = customPlots
   )
 
   # All output will be stored in the first directory passed
