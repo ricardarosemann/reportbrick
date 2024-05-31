@@ -50,18 +50,26 @@ outPath <- dirname(filePath[1])
 
 # Standard procedure to write a calibration plot
 .createCalibrationPlot <- function(data, varName, outPath, outName = "",
-                                   color = NULL, savePlots = FALSE) {
+                                   color = NULL, facets = c("loc", "typ"),
+                                   yToZero = TRUE, savePlots = FALSE) {
   # Extract the data
   plData <- data %>%
-    filter(.data[["variable"]] == varName) %>%
+    filter(.data[["variable"]] %in% varName) %>%
     select(where(~ any(!is.na(.x))))
+  # Read color map if available and rename corresponding entries
+  if (!is.null(color)) {
+    colorMap <- unlist(readBrickSets(NULL)[[color]][["elements"]])
+    plData <- plData %>%
+      mutate(across(any_of(color), ~ factor(colorMap[.x], levels = colorMap)))
+  }
   # Create the plots
   plList <- mip::mipIterations(plData, returnGgplots = TRUE, xAxis = "iteration",
-                               color = color, facets = c("loc", "typ"),
+                               color = color, facets = facets,
                                slider = NULL, facetScales = "free")
   # Modify, save and show the plots
   purrr::walk(plList, function(pl) {
-    pl <- pl + ggplot2::expand_limits(y = 0)
+    if (isTRUE(yToZero)) pl <- pl + ggplot2::expand_limits(y = 0)
+    if (!is.null(color)) pl <- pl + ggplot2::scale_colour_manual(values = mip::plotstyle(colorMap))
     # Currently, this overwrites previous plots so that only the last one remains
     if (isTRUE(savePlots)) {
       ggplot2::ggsave(file.path(outPath, paste0(paste(varName, outName, sep = "_"), ".png")), pl)
