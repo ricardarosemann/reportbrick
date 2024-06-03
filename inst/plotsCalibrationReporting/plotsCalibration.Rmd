@@ -9,14 +9,18 @@ output:
 params:
     docTitle: "BRICK calibration report"
     cal: "BRICK_calibration_report.csv"
-    path: "C:\\Users\\ricardar\\Documents\\Results\\BRICK\\calibration-tests\\extrElec-vin"
+    path: "."
     scenNames: NULL
-    savePlots: TRUE
+    savePlots: false
     name: ""
 ---
 
 ```{r setup, include=FALSE}
-library(dplyr) #nolint: undesirable_function_linter.
+
+# nolint start: undesirable_function_linter.
+library(dplyr, include.only = c("%>%", "across", "any_of", ".data", "filter", "mutate",
+                                "select", "where"))
+# nolint end
 
 knitr::opts_chunk$set(
   echo = FALSE,
