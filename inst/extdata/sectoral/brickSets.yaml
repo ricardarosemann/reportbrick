@@ -24,17 +24,18 @@ hsr:
     dihe: District heating
     ehp1: Heat pump
     reel: Resistive electric
+    h2bo: Hydrogen heater
     gabo: Gas heater
     libo: Liquids heater
     sobo: Coal heater
     "0": No change
   subsets:
-    all: [biom, dihe, ehp1, reel, gabo, libo, sobo]
-    all0: [biom, dihe, ehp1, reel, gabo, libo, sobo, "0"]
+    all: [biom, dihe, ehp1, reel, h2bo, gabo, libo, sobo]
+    all0: [biom, dihe, ehp1, reel, h2bo,  gabo, libo, sobo, "0"]
     elec: [ehp1, reel]
   child:
     hs:
-      elements: [biom, dihe, ehp1, reel, gabo, libo, sobo]
+      elements: [biom, dihe, ehp1, reel, h2bo,  gabo, libo, sobo]
       subsets: [all, elec]
 
 
@@ -44,11 +45,12 @@ carrier:
     biomod: Biomass
     heat: Heat
     elec: Electricity
+    h2: Hydrogen
     gases: Gases
     liquids: Liquids
     coal: Coal
   subsets:
-    all: [biomod, heat, elec, gases, liquids, coal]
+    all: [biomod, heat, elec, h2, gases, liquids, coal]
     solids: [biomod, coal]
 
 
