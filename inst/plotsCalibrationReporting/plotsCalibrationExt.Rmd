@@ -1,0 +1,163 @@
+# Extended Plots
+
+```{r prepare load full data}
+# Determine number of iterations (code duplicate from reportCalibration())
+dirPath <- params$path
+allFiles <- list.files(path = dirPath,
+                         pattern = paste0("calibration", "_\\d{1,3}\\.gdx"))
+allIter <- sort(as.numeric(sub(".*_(\\d{1,3})\\.gdx$", "\\1", allFiles)))
+allFiles <- paste0("calibration_", allIter, ".gdx")
+
+```
+
+## Stock and flow deviation
+
+```{r load historic and model data for stocks, compute deviation}
+p_stockAll <- mip::getPlotData("p_stock", file.path(dirPath, allFiles)) %>%
+  mutate(iteration = .data[["iteration"]] - 1)
+p_stockHist <- mip::getPlotData("p_stockHist", file.path(dirPath, "calibration.gdx")) %>%
+  mutate(iteration = NULL)
+
+p_stockAll <- left_join(p_stockAll, p_stockHist,
+                        by = setdiff(colnames(p_stockAll), c("iteration", "p_stock"))) %>%
+  mutate(dev = .data[["p_stock"]] - .data[["p_stockHist"]])
+
+stockDev <- p_stockAll %>%
+  select(-"qty", -"bs", -"ttot", -"p_stock", -"p_stockHist") %>%
+  rename(hsr = "hs", value = "dev") %>%
+  mutate(variable = "stockDev") %>%
+  tidyr::replace_na(replace = list(value = 0)) %>%
+  dplyr::relocate("value", .after = last_col())
+```
+
+
+```{r load historic and model data for renovation, compute deviation}
+p_renovationAll <- mip::getPlotData("p_renovation", file.path(dirPath, allFiles)) %>%
+  mutate(iteration = .data[["iteration"]] - 1)
+p_renovationHist <- mip::getPlotData("p_renovationHist", file.path(dirPath, "calibration.gdx")) %>%
+  mutate(iteration = NULL)
+
+p_renovationAll <- left_join(p_renovationAll, p_renovationHist,
+                        by = setdiff(colnames(p_renovationAll), c("iteration", "p_renovation"))) %>%
+  mutate(dev = .data[["p_renovation"]] - .data[["p_renovationHist"]])
+
+renDevAll <- p_renovationAll %>%
+  select(-"qty", -"bs", -"bsr", -"ttot", -"p_renovation", -"p_renovationHist")
+
+renDev <- renDevAll %>%
+  mutate(sgn = sign(.data[["dev"]])) %>%
+  group_by(across(any_of(c("iteration", "reg", "loc", "typ", "inc", "hsr", "vin")))) %>%
+  summarise(value = sum(.data[["dev"]] ^ 2, na.rm = TRUE),
+            valueSgn = sum(.data[["sgn"]] * .data[["dev"]] ^ 2, na.rm = TRUE),
+            .groups = "drop") %>%
+  mutate(sgn = sign(.data[["valueSgn"]]),
+         value = .data[["sgn"]] * sqrt(abs(.data[["value"]]))) %>%
+  select(-"sgn", -"valueSgn") %>%
+  mutate(variable = "renDev") %>%
+  tidyr::replace_na(replace = list(value = 0)) %>%
+  dplyr::relocate("value", .after = last_col())
+
+renDevAll <- renDevAll %>%
+  rename(value = "dev") %>%
+  mutate(variable = "renDevAll") %>%
+  tidyr::replace_na(replace = list(value = 0)) %>%
+  dplyr::relocate("value", .after = last_col())
+```
+
+### Absolute stock deviation
+
+```{r plot stock deviation}
+.createCalibrationPlot(stockDev, "stockDev", outPath, outName = outName, color = "hsr",
+                       facets = "vin")
+```
+
+### Absolute renovation deviation by final heating system
+
+```{r plot renovation deviation}
+.createCalibrationPlot(renDev, "renDev", outPath, outName = outName, color = "hsr",
+                       facets = "vin")
+```
+
+### Absolute renovation deviation by initial heating system
+
+```{r plot renovation deviation by initial hs}
+for (hsr in extendedPlots[["filterHsr"]]) {
+  renDevAllFilter <- renDevAll[renDevAll["hsr"] == hsr, ]
+  .createCalibrationPlot(renDevAllFilter, "renDevAll", outPath, outName = outName, color = "hs",
+                         facets = "vin")
+}
+```
+
+### Comparison of identical replacement with zero flow
+
+```{r compare deviation for identical replacement with zero}
+allHs <- unique(renDevAll[["hs"]])
+for (oneHs in allHs) {
+  renDevAllHs <- renDevAll %>%
+    filter(.data[["hs"]] == oneHs, .data[["hsr"]] %in% c("0", "ehp1", oneHs))
+  .createCalibrationPlot(renDevAllHs, "renDevAll", outPath, outName = outName,
+                         color = "hsr", facets = "vin", keepCol = "hs")
+}
+```
+
+## Total stocks and flows
+
+### Comparison of identical replacement with zero flow
+
+```{r compare identical replacement with zero}
+allHs <- unique(p_renovationAll[["hs"]])
+for (oneHs in allHs) {
+  renAllHs <- p_renovationAll %>%
+    select(-"qty", -"bs", -"bsr", -"ttot", -"p_renovationHist", -"dev") %>%
+    rename(value = "p_renovation") %>%
+    mutate(variable = "renAllHs") %>%
+    relocate("value", .after = last_col()) %>%
+    filter(.data[["hs"]] == oneHs, .data[["hsr"]] %in% c("0", "ehp1", oneHs))
+  .createCalibrationPlot(renAllHs, "renAllHs", outPath, outName = outName,
+                         color = "hsr", facets = "vin", keepCol = "hs")
+}
+```
+
+## Behavior of intangible costs
+
+```{r load intangible cost data}
+p_x <- mip::getPlotData("p_x", file.path(dirPath, allFiles)) %>%
+  mutate(iteration = .data[["iteration"]] - 1)
+
+intangCostRen <- p_x %>%
+  filter(.data[["flow"]] == "ren", .data[["bsr"]] == "0") %>%
+  select(-"flow") %>%
+  mutate(variable = "intangCostRen") %>%
+  rename(value = "p_x") %>%
+  relocate("value", .after = last_col())
+```
+
+
+```{r load descent direction data}
+p_d <- mip::getPlotData("p_d", file.path(dirPath, allFiles)) %>%
+  mutate(iteration = .data[["iteration"]] - 1) %>%
+  filter(.data[["iteration"]] != 0)
+
+descDirRen <- p_d %>%
+  filter(.data[["flow"]] == "ren", .data[["bsr"]] == "0") %>%
+  select(-"flow") %>%
+  mutate(variable = "descDirRen") %>%
+  rename(value = "p_d") %>%
+  relocate("value", .after = last_col())
+```
+
+### Intangible costs
+
+```{r plot intangible costs}
+
+.createCalibrationPlot(intangCostRen, "intangCostRen", outPath, outName = outName,
+                       color = "hsr", facets = "vin")
+```
+
+### Descent direction
+
+```{r plot descent direction}
+
+.createCalibrationPlot(descDirRen, "descDirRen", outPath, outName = outName,
+                       color = "hsr", facets = "vin")
+```

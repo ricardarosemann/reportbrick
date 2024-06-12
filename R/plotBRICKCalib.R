@@ -21,7 +21,7 @@
 
 plotBRICKCalib <- function(path = ".", cal = "BRICK_calibration_report.csv",
                            outName = "", scenNames = NULL,
-                           savePlots = FALSE, customPlots = NULL) {
+                           savePlots = FALSE, customPlots = NULL, extendedPlots = NULL) {
 
   # Extract the scenario name from the output directory
   scenario <- sub("_\\d{4}-\\d{2}-\\d{2}_\\d{2}\\.\\d{2}\\.\\d{2}", "", basename(path))
@@ -49,7 +49,8 @@ plotBRICKCalib <- function(path = ".", cal = "BRICK_calibration_report.csv",
     scenNames = scenNames,
     name = outName,
     savePlots = savePlots,
-    customPlots = customPlots
+    customPlots = customPlots,
+    extendedPlots = extendedPlots
   )
 
   # All output will be stored in the first directory passed
@@ -60,6 +61,15 @@ plotBRICKCalib <- function(path = ".", cal = "BRICK_calibration_report.csv",
             getSystemFile("plotsCalibrationReporting", "plotsCalibration.Rmd",
                           package = "reportbrick"),
             finalOutputDir, overwrite = TRUE)
+
+  # If extended plots should be generated: Copy markdown file of extended plots
+  if (!is.null(extendedPlots)) {
+    file.copy(
+      getSystemFile("plotsCalibrationReporting", "plotsCalibrationExt.Rmd",
+                    package = "reportbrick"),
+      finalOutputDir, overwrite = TRUE
+    )
+  }
 
   # Call the Rmd file
   render(

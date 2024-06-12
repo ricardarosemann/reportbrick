@@ -17,6 +17,7 @@ params:
     figWidth: 15 
     figHeight: 10
     customPlots: NULL
+    extendedPlots: NULL
 ---
 
 ```{r setup, include=FALSE}
@@ -463,3 +464,8 @@ for (cpl in customPlots) {
                          facets = if ("facets" %in% names(cpl)) cpl[["facets"]] else c("loc", "typ"),
                          savePlots = savePlots, yToZero = FALSE)
 }
+```
+
+
+```{r call extended plots, child = if (!is.null(extendedPlots)) "plotsCalibrationExt.Rmd"}
+```
