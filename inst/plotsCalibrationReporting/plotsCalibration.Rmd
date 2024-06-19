@@ -9,14 +9,18 @@ output:
 params:
     docTitle: "BRICK calibration report"
     cal: "BRICK_calibration_report.csv"
-    path: "C:\\Users\\ricardar\\Documents\\Results\\BRICK\\calibration-tests\\extrElec-vin\\lowEhp1-2010-30Iter0_1A"
+    path: ""
     scenNames: NULL
-    savePlots: TRUE
+    savePlots: false
     name: ""
 ---
 
 ```{r setup, include=FALSE}
-library(dplyr) #nolint: undesirable_function_linter.
+
+# nolint start: undesirable_function_linter.
+library(dplyr, include.only = c("%>%", "across", "any_of", ".data", "filter", "mutate",
+                                "select", "where"))
+# nolint end
 
 knitr::opts_chunk$set(
   echo = FALSE,
@@ -34,8 +38,8 @@ filePath <- file.path(params$path, params$cal)
 
 # Check if at least one file in the given paths exists
 if (!any(file.exists(filePath))) {
-  message("No BRICK_calibration_report.csv file found",
-          "BRICK_calibration_calibration.csv is normally produced during calibration runs.")
+  message("No BRICK_calibration_report.csv file found.\n",
+          "BRICK_calibration_report.csv is normally produced during calibration runs.")
   knitr::knit_exit()
 }
 
@@ -50,18 +54,26 @@ outPath <- dirname(filePath[1])
 
 # Standard procedure to write a calibration plot
 .createCalibrationPlot <- function(data, varName, outPath, outName = "",
-                                   color = NULL, savePlots = FALSE) {
+                                   color = NULL, facets = c("loc", "typ"),
+                                   yToZero = TRUE, savePlots = FALSE) {
   # Extract the data
   plData <- data %>%
-    filter(.data[["variable"]] == varName) %>%
+    filter(.data[["variable"]] %in% varName) %>%
     select(where(~ any(!is.na(.x))))
+  # Read color map if available and rename corresponding entries
+  if (!is.null(color)) {
+    colorMap <- unlist(readBrickSets(NULL)[[color]][["elements"]])
+    plData <- plData %>%
+      mutate(across(any_of(color), ~ factor(colorMap[.x], levels = colorMap)))
+  }
   # Create the plots
   plList <- mip::mipIterations(plData, returnGgplots = TRUE, xAxis = "iteration",
-                               color = color, facets = c("loc", "typ"),
+                               color = color, facets = facets,
                                slider = NULL, facetScales = "free")
   # Modify, save and show the plots
   purrr::walk(plList, function(pl) {
-    pl <- pl + ggplot2::expand_limits(y = 0)
+    if (isTRUE(yToZero)) pl <- pl + ggplot2::expand_limits(y = 0)
+    if (!is.null(color)) pl <- pl + ggplot2::scale_colour_manual(values = mip::plotstyle(colorMap))
     # Currently, this overwrites previous plots so that only the last one remains
     if (isTRUE(savePlots)) {
       ggplot2::ggsave(file.path(outPath, paste0(paste(varName, outName, sep = "_"), ".png")), pl)
