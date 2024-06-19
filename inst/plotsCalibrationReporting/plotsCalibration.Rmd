@@ -9,7 +9,7 @@ output:
 params:
     docTitle: "BRICK calibration report"
     cal: "BRICK_calibration_report.csv"
-    path: "."
+    path: ""
     scenNames: NULL
     savePlots: false
     name: ""
