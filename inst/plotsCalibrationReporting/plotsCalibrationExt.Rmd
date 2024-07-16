@@ -32,12 +32,14 @@ stockDev <- p_stockAll %>%
 
 
 ```{r load historic and model data for renovation, compute deviation}
+tCalib <- readGdxSymbol(file.path(dirPath, "calibration.gdx"), "tCalib", asMagpie = FALSE)[["ttot"]]
+
 p_renovationAll <- mip::getPlotData("p_renovation", file.path(dirPath, allFiles)) %>%
   mutate(iteration = .data[["iteration"]] - 1)
 p_renovationHist <- mip::getPlotData("p_renovationHist", file.path(dirPath, "calibration.gdx")) %>%
   mutate(iteration = NULL)
 
-p_renovationAll <- left_join(p_renovationAll, p_renovationHist,
+p_renovationAll <- dplyr::left_join(p_renovationAll, p_renovationHist,
                         by = setdiff(colnames(p_renovationAll), c("iteration", "p_renovation"))) %>%
   mutate(dev = .data[["p_renovation"]] - .data[["p_renovationHist"]])
 
@@ -46,8 +48,8 @@ renDevAll <- p_renovationAll %>%
 
 renDev <- renDevAll %>%
   mutate(sgn = sign(.data[["dev"]])) %>%
-  group_by(across(any_of(c("iteration", "reg", "loc", "typ", "inc", "hsr", "vin")))) %>%
-  summarise(value = sum(.data[["dev"]] ^ 2, na.rm = TRUE),
+  dplyr::group_by(across(any_of(c("iteration", "reg", "loc", "typ", "inc", "hsr", "vin")))) %>%
+  dplyr::summarise(value = sum(.data[["dev"]] ^ 2, na.rm = TRUE),
             valueSgn = sum(.data[["sgn"]] * .data[["dev"]] ^ 2, na.rm = TRUE),
             .groups = "drop") %>%
   mutate(sgn = sign(.data[["valueSgn"]]),
@@ -58,10 +60,17 @@ renDev <- renDevAll %>%
   dplyr::relocate("value", .after = last_col())
 
 renDevAll <- renDevAll %>%
-  rename(value = "dev") %>%
+  dplyr::rename(value = "dev") %>%
   mutate(variable = "renDevAll") %>%
   tidyr::replace_na(replace = list(value = 0)) %>%
   dplyr::relocate("value", .after = last_col())
+
+renHistAll <- p_renovationHist %>%
+  filter(.data[["ttot"]] %in% tCalib) %>%
+  rename(hist = "p_renovationHist") %>%
+  group_by(across(all_of(c("reg", "typ", "loc", "inc")))) %>%
+  summarise(hist = sqrt(sum(.data[["hist"]] ^ 2, na.rm = TRUE)), .groups = "drop")
+
 ```
 
 ### Absolute stock deviation
@@ -117,6 +126,7 @@ for (oneHs in allHs) {
                          color = "hsr", facets = "vin", keepCol = "hs")
 }
 ```
+
 
 ## Behavior of intangible costs
 

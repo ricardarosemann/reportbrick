@@ -10,14 +10,14 @@ geometry: "a4paper,left=1cm,right=1cm,top=1cm,bottom=1cm,footnotesep=0.0cm,foots
 params:
     docTitle: "BRICK calibration report"
     cal: "BRICK_calibration_report.csv"
-    path: ""
+    path: "C:/Users/ricardar/Documents/Results/BRICK/calibration-tests/matchingData/calibration-reporting-tests_2025-03-19_16.40.32/"
     scenNames: NULL
     savePlots: false
     name: ""
-    figWidth: 15 
-    figHeight: 10
     customPlots: NULL
     extendedPlots: NULL
+    figWidth: 15 
+    figHeight: 10
 ---
 
 ```{r setup, include=FALSE}

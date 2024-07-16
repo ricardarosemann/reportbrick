@@ -381,6 +381,8 @@ reportCalibration <- function(gdx, flowTargets = TRUE) {
     .expandDims(out[[varName]], varName, allSets)
   }))
 
+  browser()
+
 
   # WRITE OUTPUT FILE ----------------------------------------------------------
 
