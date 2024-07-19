@@ -5,6 +5,7 @@
 #'  with this path and the iteration number inserted at the end.
 #' @param flowTargets logical, if set to FALSE, the function does not expect the presence of targets
 #'  for the flows
+#' @param priceSensCalibration character, if set, specifies type of price sensitivity calibration
 #'
 #' @author Ricarda Rosemann
 #'
@@ -13,7 +14,7 @@
 #' @importFrom yaml read_yaml
 #' @export
 #'
-reportCalibration <- function(gdx, flowTargets = TRUE) {
+reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NULL) {
 
 
 
@@ -198,24 +199,48 @@ reportCalibration <- function(gdx, flowTargets = TRUE) {
 
   ## Aggregate total quantities ====
 
-  if (isTRUE(diagnosticsExist)) {
-    out[["stepSize"]] <- stepSize
-
-    out[["descDirCon"]] <- .computeAvg(descDirCon, rprt = c("iteration", "region", "typ", "loc", "inc", "hsr", "ttot"),
-                                       exclude = list(hsr = "h2bo"))
-
-    out[["descDirRen"]] <- .computeAvg(descDirRen, rprt = c("iteration", "region", "typ", "loc", "inc", "hsr", "ttot"),
-                                       exclude = list(hs = "h2bo", hsr = "h2bo"))
-
+  # Aggregate x, i.e. the intangible costs by heating system
+  if (is.null(priceSensCalibration)) {
     # Aggregate d, i.e. the direction of steepest descent by heating system for late iterations
-    out[["descDirConLate"]] <- out[["descDirCon"]] %>%
-      filter(.data[["iteration"]] >= floor(0.4 * maxIter))
 
-    out[["descDirRenLate"]] <- out[["descDirRen"]] %>%
-      filter(.data[["iteration"]] >= floor(0.4 * maxIter))
+    if (isTRUE(diagnosticsExist)) {
+      out[["stepSize"]] <- stepSize
 
-    out[["outerObjective"]] <- outerObjective
+      out[["descDirCon"]] <- .computeAvg(
+        descDirCon,
+        rprt = c("iteration", "region", "typ", "loc", "inc", "hsr", "ttot"),
+        exclude = list(hsr = "h2bo")
+      )
+
+      out[["descDirRen"]] <- .computeAvg(
+        descDirRen,
+        rprt = c("iteration", "region", "typ", "loc", "inc", "hsr", "ttot"),
+        exclude = list(hs = "h2bo", hsr = "h2bo")
+      )
+
+      out[["descDirConLate"]] <- out[["descDirCon"]] %>%
+        filter(.data[["iteration"]] >= floor(0.4 * maxIter))
+
+  
+      out[["descDirRenLate"]] <- out[["descDirRen"]] %>%
+        filter(.data[["iteration"]] >= floor(0.4 * maxIter))
+
+      out[["outerObjective"]] <- outerObjective
+    }
+  } else if (priceSensCalibration == "normal") {
+
+    out[["intangCostConHs"]] <- .computeAvg(p_x,
+                                            rprt = c("iteration", "reg", "typ", "loc", "inc"))
+    out[["intangCostRenHs"]] <- .computeAvg(p_x,
+                                            rprt = c("iteration", "reg", "typ", "loc", "inc"))
+
+    # Aggregate d, i.e. the direction of steepest descent by heating system
+    out[["descDirConHs"]] <- .computeAvg(p_d,
+                                         rprt = c("iteration", "reg", "typ", "loc", "inc", "hsr"))
+    out[["descDirRenHs"]] <- .computeAvg(p_d,
+                                         rprt = c("iteration", "reg", "typ", "loc", "inc", "hsr"))
   }
+
 
   # Aggregate specific costs
   out[["specCostCon"]] <- .computeAvg(
@@ -381,12 +406,10 @@ reportCalibration <- function(gdx, flowTargets = TRUE) {
     .expandDims(out[[varName]], varName, allSets)
   }))
 
-  browser()
-
 
   # WRITE OUTPUT FILE ----------------------------------------------------------
 
-  outName <- "BRICK_calibration_report.csv"
+  outName <- paste0("BRICK_calibration_report", if (!is.null(priceSensCalibration)) "PS" else "", ".csv")
   write.csv(out, file.path(path, outName), row.names = FALSE)
 
 }
