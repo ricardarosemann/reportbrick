@@ -28,6 +28,7 @@ heating <- c(
   "District heating",
   "Heat pump",
   "Resistive electric",
+  "Hydrogen heater",
   "Gas heater",
   "Liquids heater",
   "Coal heater"
@@ -36,6 +37,7 @@ carrier <- c(
   "Biomass",
   "Heat",
   "Electricity",
+  "Hydrogen",
   "Gases",
   "Liquids",
   "Coal"

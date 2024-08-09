@@ -2,19 +2,19 @@ cff-version: 1.2.0
 message: If you use this software, please cite it using the metadata from this file.
 type: software
 title: 'reportbrick: Reporting package for BRICK'
-version: 0.4.2
-date-released: '2024-06-03'
+version: 0.5.0
+date-released: '2024-08-09'
 abstract: This package contains BRICK-specific routines to report model results. The
   main functionality is to generate a mif-file from a given BRICK model run folder.
 authors:
 - family-names: Hasse
   given-names: Robin
   email: robin.hasse@pik-potsdam.de
-  orcid: 0000-0003-1818-3186
+  orcid: https://orcid.org/0000-0003-1818-3186
 - family-names: Rosemann
   given-names: Ricarda
   email: ricarda.rosemann@pik-potsdam.de
-  orcid: 0009-0006-5939-3197
+  orcid: https://orcid.org/0009-0006-5939-3197
 license: LGPL-3.0
 repository-code: https://github.com/pik-piam/reportbrick
 
