@@ -10,6 +10,9 @@ library(tidyr)
 
 #TODO: Proper handling of hs vs hsr
 #TODO: Proper handling of building shell!!! (Ignored for the time being)
+
+# Restructuring:
+# Separate functions (with subfunctions) for: Computation of each lifetime type, computation lcc, computation lcoh?, computation of shares
 reportLCCShare <- function(gdx, pathLt = NULL) {
 
   if (is.null(pathLt)) pathLt <- "C:/Users/ricardar/Documents/PIAM/brick/inst/input/f_lifetimeHeatingSystem.cs4r"
@@ -46,13 +49,17 @@ reportLCCShare <- function(gdx, pathLt = NULL) {
   dims <- setdiff(colnames(v_stock), c("ttot", "value"))
 
   # Load cost components
-  p_specCostOpe <- readGdxSymbol(gdx, "p_specCostOpe", asMagpie = FALSE)
-  p_specCostCon <- readGdxSymbol(gdx, "p_specCostCon", asMagpie = FALSE)
-  p_specCostRen <- readGdxSymbol(gdx, "p_specCostRen", asMagpie = FALSE)
+  p_specCostOpe <- readGdxSymbol(gdx, "p_specCostOpe", asMagpie = FALSE) %>%
+    mutate(ttot = as.numeric(levels(.data[["ttot"]]))[.data[["ttot"]]])
+  p_specCostCon <- readGdxSymbol(gdx, "p_specCostCon", asMagpie = FALSE) %>%
+    mutate(ttot = as.numeric(levels(.data[["ttot"]]))[.data[["ttot"]]])
+  p_specCostRen <- readGdxSymbol(gdx, "p_specCostRen", asMagpie = FALSE) %>%
+    mutate(ttot = as.numeric(levels(.data[["ttot"]]))[.data[["ttot"]]])
   p_specCostDem <- readGdxSymbol(gdx, "p_specCostDem", asMagpie = FALSE)
 
   # Load parameters (Discount rate, price sensitivity, Weibull parameters)
-  p_discountFac <- readGdxSymbol(gdx, "p_discountFac", asMagpie = FALSE)
+  p_discountFac <- readGdxSymbol(gdx, "p_discountFac", asMagpie = FALSE) %>%
+    mutate(ttot = as.numeric(levels(.data[["ttot"]]))[.data[["ttot"]]])
   priceSensBs <- readGdxSymbol(gdx, "priceSensBs", asMagpie = FALSE)
   priceSensHs <- readGdxSymbol(gdx, "priceSensHs", asMagpie = FALSE)
   # Weibull parameters have to be read from cs4r!
@@ -174,9 +181,10 @@ reportLCCShare <- function(gdx, pathLt = NULL) {
     left_join(times, by = "ttot") %>%
     left_join(lifeTimeHs %>% rename(hsr = "hs"), by = c("reg", "typ", "hsr"))
 
-  renLtAnte <- .computeLtAnte(renLtAnte, .weibullIntegrand, 4) %>%
+  renLtAnte <- .computeLtAnte(renLtAnte, .weibullIntegrand, 4)
+  renLtAnte <- renLtAnte %>%
     group_by(across(-all_of(c("hs", "value")))) %>%
-    summarise(value = sum(.data[["value"]]), .groups = "drop") %>%
+    summarise(value = mean(.data[["value"]]), .groups = "drop") %>%
     select(-"bs") %>%
     rename(bs = "bsr", hs = "hsr", relVal = "value") %>%
     left_join(v_renovationIn %>%
@@ -339,9 +347,90 @@ reportLCCShare <- function(gdx, pathLt = NULL) {
     mutate(ttot = "None", relVal = .data[["value"]], absVal = .data[["value"]]) %>%
     select(-"value")
 
+  # COMPUTE LCC AND LCOH -------------------------------------------------------
+
+  costRen <- p_specCostRen %>%
+    filter(.data[["bsr"]] == 0) %>%
+    group_by(across(-all_of(c("bs", "hs", "value")))) %>%
+    summarise(value = mean(.data[["value"]]), .groups = "keep")
+  costRen <- costRen %>%
+    # ungroup("cost") %>%
+    # summarise(lccRen = sum(.data[["value"]]), .groups = "drop") %>%
+    ungroup() %>%
+    rename(bs = "bsr", hs = "hsr") %>%
+    pivot_wider(names_from = cost, values_from = value) %>%
+    rename(tangibleRen = "tangible", intangibleRen = "intangible")
+
+  # Compute LCC and LCOH based on lifetime expectation
+  expLt <- lifeTimeHs %>%
+    mutate(expVal = .data[["scale"]] * gamma(1 + 1 / .data[["shape"]]))
+  browser()
+
   # Compute ex-ante LCC and LCOH
+  # Vary the discount
+  renLccAnte <- rbind(
+    .computeLCCOpe(out[["renLtAnte"]], p_specCostOpe, p_dt, p_discountFac) %>%
+      mutate(r = 0.21),
+    .computeLCCOpe(out[["renLtAnte"]], p_specCostOpe, p_dt, 0.05, keepDiscount = TRUE) %>%
+      mutate(r = 0.05),
+    .computeLCCOpe(out[["renLtAnte"]], p_specCostOpe, p_dt, 0.3, keepDiscount = TRUE) %>%
+      mutate(r = 0.3)
+  )
+
+  out[["renLccAnte"]] <- renLccAnte %>%
+    rename(lccOpe = "value") %>%
+    left_join(costRen,
+              by = c("hs", "vin", "reg", "loc", "typ", "ttot")) %>%
+    pivot_longer(cols = all_of(c("tangibleRen", "intangibleRen", "lccOpe")), names_to = "costType", values_to = "absVal")
 
   # Compute ex-post LCC and LCOH
+
+  # Compute mixed LCC and LCOH
+
+  renLccMixed <- rbind(
+    .computeLCCOpe(out[["renLtMixed"]], p_specCostOpe, p_dt, p_discountFac) %>%
+      mutate(r = 0.21),
+    .computeLCCOpe(out[["renLtMixed"]], p_specCostOpe, p_dt, 0.05, keepDiscount = TRUE) %>%
+      mutate(r = 0.05),
+    .computeLCCOpe(out[["renLtMixed"]], p_specCostOpe, p_dt, 0.3, keepDiscount = TRUE) %>%
+      mutate(r = 0.3)
+  )
+
+  renLccMixed <- renLccMixed %>%
+    rename(lccOpe = "value") %>%
+    left_join(costRen,
+              by = c("hs", "vin", "reg", "loc", "typ", "ttot")) %>%
+    pivot_longer(cols = all_of(c("tangibleRen", "intangibleRen", "lccOpe")), names_to = "costType", values_to = "absVal")
+    # mutate(lcc = .data[["lccOpe"]] + .data[["lccRen"]])
+
+  out[["renLccMixed"]] <- renLccMixed
+
+  # Compute relative shares and logarithmic quantity shares
+  # renLccGabo <- renLcc %>%
+  #   ungroup() %>%
+  #   filter(.data[["hs"]] == "gabo") %>%
+  #   rename(lccGabo = "lcc") %>%
+  #   select(-"hs", -"lccOpe", -"lccRen", -"discount")
+  #
+  # v_renovationGabo <- v_renovationIn %>%
+  #   filter(.data[["hs"]] == "gabo") %>%
+  #   rename(valGabo = "value") %>%
+  #   select(-"hs", -"dt")
+  #
+  # renLccDiff <- renLcc %>%
+  #   left_join(renLccGabo, by = c("bs", "vin", "reg", "loc", "typ", "inc", "ttot")) %>%
+  #   mutate(value = .data[["lcc"]] - .data[["lccGabo"]]) %>%
+  #   select(-"lccOpe", -"lccRen", -"discount")
+  #
+  # renQuantShare <- v_renovationIn %>%
+  #   left_join(v_renovationGabo, by = c("qty", "bs", "vin", "reg", "loc", "typ", "inc", "ttot")) %>%
+  #   mutate(value = log(.data[["value"]] / .data[["valGabo"]])) %>%
+  #   select(-"dt", -"valGabo")
+  #
+  # renLogitLcc <- renLcc %>%
+  #   mutate(value = exp(-priceSensHs * (.data[["lcc"]] - .data[["lcc"]][["gabo"]]))) %>%
+  #   select(-"lccOpe", -"lccRen")
+
 
   # Compute logit share
 
@@ -349,20 +438,12 @@ reportLCCShare <- function(gdx, pathLt = NULL) {
 
   # WRITE ----------------------------------------------------------------------
 
+  # Determine all dimensions present in output data
+  allSets <- unique(unlist(lapply(out, colnames)))
+
   #(Partial) code duplicate of reportCalibration
-  browser()
-  # namesAll <- c("stockInitLtAnte", "stockInitLtPost", "stockInitLtMixed", "conLtAnte", "conLtPost", "conLtMixed", "renLtAnte", "renLtPost", "renLtMixed")
-  # namesIndex <- expand.grid(sa = c(TRUE,FALSE), sp = c(TRUE,FALSE), sm = c(TRUE,FALSE), ca = c(TRUE,FALSE), cp = c(TRUE,FALSE), cm = c(TRUE,FALSE), ra = c(TRUE,FALSE), rp = c(TRUE,FALSE), rm = c(TRUE,FALSE))
-  # for (i in seq_len(nrow(namesIndex))) {
-  #   print(namesAll[as.vector(t(namesIndex[i, ]))])
-  #   if (length(namesAll[as.vector(t(namesIndex[i, ]))]) > 1) {
-  #     out <- do.call(rbind, lapply(namesAll[as.vector(t(namesIndex[i, ]))], function(varName) {
-  #       mutate(out[[varName]], variable = varName, .before = 1)
-  #     }))
-  #   }
-  # }
   out <- do.call(rbind, lapply(names(out), function(varName) {
-    mutate(out[[varName]], variable = varName, .before = 1)
+    .expandDims(out[[varName]], varName, allSets)
   }))
 
   write.csv(out, file.path(path, "BRICK_analysis_report.csv"), row.names = FALSE)
@@ -542,7 +623,7 @@ reportLCCShare <- function(gdx, pathLt = NULL) {
     filter(.data[["ttot2"]] <= tOut) %>%
     group_by(across(any_of(c(dims, "ttot")))) %>%
     summarise(sumVal = sum(.data[["value"]]), .groups = "drop") %>%
-    right_join(dfLtMixed, by = c(dims, "ttot")) %>%
+    dplyr::right_join(dfLtMixed, by = c(dims, "ttot")) %>%
     left_join(dfTotVal %>%
                 rename(totVal = "value"),
               by = c(dims, "ttot")) %>%
@@ -631,4 +712,62 @@ reportLCCShare <- function(gdx, pathLt = NULL) {
     mutate(relVal = .data[["absVal"]] / .data[["value"]]) %>%
     select(-any_of(c("dt", "value")))
 
+}
+
+.computeLCCOpe <- function(dfLt, dfCosts, dfDt, dfDiscount, keepDiscount = FALSE) {
+
+  if (!is.data.frame(dfDiscount)) {
+    dfDiscount <- data.frame(
+      value = dfDiscount
+    ) %>%
+      crossing(ttot = unique(dfLt[["ttot"]]), typ = unique(dfLt[["typ"]])) %>%
+      mutate(value = 1 / (1 + .data[["value"]])^.data[["ttot"]])
+  }
+
+  #Assemble operational costs for all in and out times
+  dfCosts <- dfCosts %>%
+    select(-"bs") %>%
+    filter(.data[["ttot"]] %in% unique(dfLt[["ttot"]])) %>%
+    left_join(dfDt, by = "ttot") %>%
+    left_join(dfDiscount %>%
+                rename(discountIn = "value"),
+              by = c("ttot", "typ")) %>%
+    tidyr::crossing(ttot2 = unique(dfLt[["ttot2"]])) %>%
+    filter(.data[["ttot"]] <= .data[["ttot2"]]) %>%
+    left_join(dfDiscount %>%
+                rename(discountOut = "value"),
+              by = c("ttot2" = "ttot", "typ")) %>%
+    mutate(discount = .data[["discountOut"]] / .data[["discountIn"]]) %>%
+    group_by(across(all_of(c("hs", "vin", "reg", "loc", "typ", "ttot")))) %>%
+    mutate(cumCostOpe = cumsum(.data[["value"]] * .data[["discount"]] * .data[["dt"]])) %>%
+    ungroup() %>%
+    select(-"dt", -"discountIn", -"discountOut", -"discount")
+
+  # Compute Lifetime operational costs based on lifetime data
+  dfLt %>%
+    mutate(relVal = ifelse(.data[["absVal"]] == 0, 0, .data[["relVal"]])) %>%
+    left_join(dfCosts, by = c("hs", "vin", "reg", "loc", "typ", "ttot", "ttot2")) %>%
+    group_by(across(all_of(c("hs", "vin", "reg", "loc", "typ", "ttot")))) %>%
+    summarise(value = sum(.data[["relVal"]] * .data[["cumCostOpe"]]))
+
+}
+
+#' Extend dimensions of a data frame by adding NA entries, add variable name
+#' Code duplicate from reportCalibration.R
+#'
+#' @param df data frame to be extended
+#' @param varName character, variable name to be added
+#' @param allSets character, sets that need to be included as column names
+#' @returns data frame
+#'
+#' @importFrom dplyr %>% mutate last_col relocate
+
+.expandDims <- function(df, varName, allSets) {
+
+  # Add missing columns with NA entries
+  df[setdiff(allSets, colnames(df))] <- NA
+
+  # Add variable name as first column
+  df <- df %>%
+    mutate(variable = varName, .before = 1)
 }

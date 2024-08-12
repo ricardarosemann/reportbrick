@@ -42,13 +42,16 @@ outName <- params$name
 outPath <- dirname(filePath[1])
 
 # Standard procedure to write a calibration plot
-.createLtPlot <- function(data, varName, yname, color, rprt = NULL) {
+.createLtPlot <- function(data, varName, yname, color, rprt = NULL, xname = "ttot2", noFacets = FALSE) {
   
   colorMap <- unlist(readBrickSets(NULL)[[color]][["elements"]])
   
-  plData <- data %>%
-    filter(.data[["variable"]] == varName) %>%
-    mutate(across(any_of(color), ~ factor(colorMap[.x], levels = colorMap)))
+  browser()
+  
+  plData <- filter(data, .data[["variable"]] == varName)
+  if (!is.null(colorMap)) {
+    plData <- mutate(plData, across(any_of(color), ~ factor(colorMap[.x], levels = colorMap)))
+  }
   
   heading <- paste(varName, "by", color)
   
@@ -65,11 +68,11 @@ outPath <- dirname(filePath[1])
     
     if (length(rprt) == 1) plDataFiltered <- filter(plDataFiltered, .data[[rprt]] == filterVals[i])
     
-    pl <- ggplot(plDataFiltered, mapping = aes(x = ttot2, y = !!sym(yname), fill = !!sym(color))) +
+    pl <- ggplot(plDataFiltered, mapping = aes(x = !!sym(xname), y = !!sym(yname), fill = !!sym(color))) +
       geom_col() +
-      ggplot2::scale_fill_manual(values = mip::plotstyle(colorMap)) +
-      ggtitle(heading[i]) +
-      facet_grid(rows = vars(loc), cols = vars(typ))
+      ggtitle(heading[i])
+    if (isFALSE(noFacets)) pl <- pl + facet_grid(rows = vars(loc), cols = vars(typ))
+    if (!is.null(colorMap)) pl <- pl + ggplot2::scale_fill_manual(values = mip::plotstyle(colorMap))
     print(pl)
   }
 }
@@ -243,8 +246,38 @@ data <- utils::read.csv(filePath)
 
 ```
 
+## Plot mixed leave time of renovations, relative values
+
+```{r Plot mixed leave time of renovations, relative values}
+
+.createLtPlot(data, "renLtMixed", yname = "relVal", color = "hs", rprt = "ttot")
+
+```
+
 ## Plot ex-post leave time constructions and total outflow
 
 ```{r Plot ex-post construction leave time and total outflow}
 .createLtTwoBar(data, c("conLtPost", "outflow"), yname = "absVal", color = "hs", remCols = c("value", "relVal"), rprt = "ttot")
+```
+
+# LCC plots
+
+## Plot LCC of renovation with ex-ante lifetimes and varying interest rate
+
+```{r Plot ex-ante LCC of renovation}
+.createLtPlot(data %>% filter(loc == "rural", typ == "MFH", ttot == 2010), "renLccAnte", xname = "hs", yname = "absVal", color = "costType", rprt = "r", noFacets = TRUE)
+```
+
+```{r Plot ex-ante LCC of renovation, by r}
+.createLtPlot(data %>% filter(loc == "rural", typ == "MFH", ttot == 2010), "renLccAnte", xname = "r", yname = "absVal", color = "costType", rprt = "hs", noFacets = TRUE)
+```
+
+## Plot LCC of renovation with mixed lifetimes
+
+```{r Plot LCC of renovation}
+.createLtPlot(data %>% filter(loc == "rural", typ == "MFH", r == 0.21), "renLccMixed", xname = "hs", yname = "absVal", color = "costType", rprt = "ttot", noFacets = TRUE)
+```
+
+```{r Plot mixed LCC of renovation, varying r}
+.createLtPlot(data %>% filter(loc == "rural", typ == "MFH", ttot == 2010), "renLccMixed", xname = "hs", yname = "absVal", color = "costType", rprt = "r", noFacets = TRUE)
 ```
