@@ -35,7 +35,7 @@ showAreaAndBarPlots(data, vars = locationRes, tot = tot, orderVars = "user", sca
 walk(locationRes, showLinePlots, data = data)
 ```
 
-#### by construction cohort
+#### by Renovation cohort
 ```{r Stock-Residential-(vintage)}
 showAreaAndBarPlots(data, vars = rev(vintageRes), tot = tot, orderVars = "user", scales = "fixed")
 ```
@@ -44,6 +44,111 @@ showAreaAndBarPlots(data, vars = rev(vintageRes), tot = tot, orderVars = "user",
 ```{r Stock-Residential-(heating)}
 showAreaAndBarPlots(data, vars = heatingRes, tot = tot, orderVars = "user", scales = "fixed")
 walk(heatingRes, showLinePlots, data = data)
+```
+
+### Commercial
+
+## Construction flow
+
+```{r stock vars}
+tot <- "Construction|Buildings"
+subsec <- c("Construction|Residential",
+            "Construction|Commercial")
+```
+
+```{r ConstructionSubsector}
+showAreaAndBarPlots(data, vars = subsec, tot = tot, orderVars = "user", scales = "fixed")
+```
+
+### All buildings
+
+### Residential
+```{r residential construction vars}
+tot <- "Construction|Residential"
+heatingRes <- paste(tot, heating, sep = "|")
+typeRes <- paste(tot, type, sep = "|")
+locationRes <- paste(tot, location, sep = "|")
+```
+
+#### by building type
+```{r Construction-Residential-(type)}
+showAreaAndBarPlots(data, vars = typeRes, tot = tot, orderVars = "user", scales = "fixed")
+walk(typeRes, showLinePlots, data = data)
+```
+
+#### by location
+```{r Construction-Residential-(location)}
+showAreaAndBarPlots(data, vars = locationRes, tot = tot, orderVars = "user", scales = "fixed")
+walk(locationRes, showLinePlots, data = data)
+```
+
+#### by Space heating
+```{r Construction-Residential-(heating)}
+showAreaAndBarPlots(data, vars = heatingRes, tot = tot, orderVars = "user", scales = "fixed")
+walk(heatingRes, showLinePlots, data = data)
+```
+
+### Commercial
+
+## Renovation flow
+
+```{r stock vars}
+tot <- "Renovation|Buildings"
+subsec <- c("Renovation|Residential",
+            "Renovation|Commercial")
+```
+
+```{r RenovationSubsector}
+showAreaAndBarPlots(data, vars = subsec, tot = tot, orderVars = "user", scales = "fixed")
+```
+
+### All buildings
+
+### Residential
+```{r residential Renovation vars}
+tot <- "Renovation|Residential"
+totAfter <- "Renovation|Residential|all" # for proper plotting
+totAfterZero <- paste(totAfter, "With zero", sep = "|")
+heatingResBefore <- paste(tot, heating, sep = "|")
+heatingResAfter <- paste(tot, "all", heating0, sep = "|")
+heatingResAfterZero <- paste(tot, "all", "With zero", heating0, sep = "|")
+typeRes <- paste(tot, type, sep = "|")
+locationRes <- paste(tot, location, sep = "|")
+```
+
+#### by building type
+```{r Renovation-Residential-(type)}
+showAreaAndBarPlots(data, vars = typeRes, tot = tot, orderVars = "user", scales = "fixed")
+walk(typeRes, showLinePlots, data = data)
+```
+
+#### by location
+```{r Renovation-Residential-(location)}
+showAreaAndBarPlots(data, vars = locationRes, tot = tot, orderVars = "user", scales = "fixed")
+walk(locationRes, showLinePlots, data = data)
+```
+
+#### by Space heating (initial state)
+```{r Renovation-Residential-(heatingBefore)}
+showAreaAndBarPlots(data, vars = heatingResBefore, tot = tot, orderVars = "user", scales = "fixed")
+walk(heatingRes, showLinePlots, data = data)
+```
+
+#### by Space heating (initial state)
+```{r Renovation-Residential-(heatingBefore)}
+showAreaAndBarPlots(data, vars = heatingResBefore, tot = tot, orderVars = "user", scales = "fixed")
+walk(heatingRes, showLinePlots, data = data)
+```
+
+#### by Space heating (final state)
+```{r Renovation-Residential-(heatingAfter)}
+showAreaAndBarPlots(data, vars = heatingResAfter, tot = totAfter, orderVars = "user", scales = "fixed")
+```
+
+#### by Space heating (final state, with zero renovation)
+```{r Renovation-Residential-(heatingAfter)}
+showAreaAndBarPlots(data, vars = heatingResAfterZero, tot = totAfterZero, orderVars = "user", scales = "fixed")
+walk(heatingResAfterZero, showLinePlots, data = data)
 ```
 
 ### Commercial

@@ -56,6 +56,10 @@ convGDX2MIF <- function(gdx,
   message("running reportConstruction ...")
   output <- mbind(output, reportConstruction(gdx, brickSets, silent = silent)[, t, ])
 
+  ## Renovation ====
+  message("running reportRenovation ...")
+  output <- mbind(output, reportRenovation(gdx, brickSets, silent = silent)[, t, ])
+
   ## Demolition ====
   message("running reportDemolition ...")
   output <- mbind(output, reportDemolition(gdx, brickSets, silent = silent)[, t, ])

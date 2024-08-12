@@ -33,6 +33,7 @@ heating <- c(
   "Liquids heater",
   "Coal heater"
 )
+heating0 <- c(heating, "No change")
 carrier <- c(
   "Biomass",
   "Heat",
