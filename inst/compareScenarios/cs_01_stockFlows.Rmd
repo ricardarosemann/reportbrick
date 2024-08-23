@@ -35,7 +35,7 @@ showAreaAndBarPlots(data, vars = locationRes, tot = tot, orderVars = "user", sca
 walk(locationRes, showLinePlots, data = data)
 ```
 
-#### by Renovation cohort
+#### by Construction cohort
 ```{r Stock-Residential-(vintage)}
 showAreaAndBarPlots(data, vars = rev(vintageRes), tot = tot, orderVars = "user", scales = "fixed")
 ```
@@ -107,11 +107,12 @@ showAreaAndBarPlots(data, vars = subsec, tot = tot, orderVars = "user", scales =
 ### Residential
 ```{r residential Renovation vars}
 tot <- "Renovation|Residential"
-totAfter <- "Renovation|Residential|all" # for proper plotting
-totAfterZero <- paste(totAfter, "With zero", sep = "|")
-heatingResBefore <- paste(tot, heating, sep = "|")
-heatingResAfter <- paste(tot, "all", heating0, sep = "|")
-heatingResAfterZero <- paste(tot, "all", "With zero", heating0, sep = "|")
+totBefore <- paste(tot, "Initial", sep = "|")
+totAfter <- paste(tot, "Final", sep = "|") # for proper plotting
+totAfterZero <- paste(tot, "Final with zero", sep = "|")
+heatingResBefore <- paste(tot, "Initial", heating, sep = "|")
+heatingResAfter <- paste(tot, "Final", heating0, sep = "|")
+heatingResAfterZero <- paste(tot, "Final with zero", heating0, sep = "|")
 typeRes <- paste(tot, type, sep = "|")
 locationRes <- paste(tot, location, sep = "|")
 ```
@@ -130,14 +131,8 @@ walk(locationRes, showLinePlots, data = data)
 
 #### by Space heating (initial state)
 ```{r Renovation-Residential-(heatingBefore)}
-showAreaAndBarPlots(data, vars = heatingResBefore, tot = tot, orderVars = "user", scales = "fixed")
-walk(heatingRes, showLinePlots, data = data)
-```
-
-#### by Space heating (initial state)
-```{r Renovation-Residential-(heatingBefore)}
-showAreaAndBarPlots(data, vars = heatingResBefore, tot = tot, orderVars = "user", scales = "fixed")
-walk(heatingRes, showLinePlots, data = data)
+showAreaAndBarPlots(data, vars = heatingResBefore, tot = totBefore, orderVars = "user", scales = "fixed")
+walk(heatingResBefore, showLinePlots, data = data)
 ```
 
 #### by Space heating (final state)

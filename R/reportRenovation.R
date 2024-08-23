@@ -6,7 +6,7 @@
 #' @param brickSets character, BRICK reporting template
 #' @param silent boolean, suppress warnings and printing of dimension mapping
 #'
-#' @author Robin Hasse
+#' @author Ricarda Rosemann
 #'
 #' @importFrom magclass mbind setNames dimSums mselect collapseDim
 
@@ -62,7 +62,7 @@ reportRenovation <- function(gdx, brickSets = NULL, silent = TRUE) {
 
     ## by initial heating system ====
     reportAgg(v_renovation,
-              "Renovation|Residential|{hs} (bn m2/yr)", brickSets,
+              "Renovation|Residential|Initial|{hs} (bn m2/yr)", brickSets,
               agg = c(bs = "all", bsr = "all0", hsr = "all", vin = "all", loc = "all", typ = "res", inc = "all"),
               rprt = c(hs = "all"),
               silent = silent),
@@ -70,7 +70,7 @@ reportRenovation <- function(gdx, brickSets = NULL, silent = TRUE) {
 
     ## by building type + initial heating system ====
     reportAgg(v_renovation,
-              "Renovation|Residential|{typ}|{hs} (bn m2/yr)", brickSets,
+              "Renovation|Residential|{typ}|Initial|{hs} (bn m2/yr)", brickSets,
               agg = c(bs = "all", bsr = "all0", hsr = "all", vin = "all", loc = "all", inc = "all"),
               rprt = c(hs = "all", typ = "res"),
               silent = silent),
@@ -78,7 +78,7 @@ reportRenovation <- function(gdx, brickSets = NULL, silent = TRUE) {
 
     ## by final heating system ====
     reportAgg(v_renovation,
-              "Renovation|Residential|all|{hsr} (bn m2/yr)", brickSets,
+              "Renovation|Residential|Final|{hsr} (bn m2/yr)", brickSets,
               agg = c(bs = "all", hs = "all", bsr = "all0", vin = "all", loc = "all", typ = "res", inc = "all"),
               rprt = c(hsr = "all"),
               silent = silent),
@@ -86,7 +86,7 @@ reportRenovation <- function(gdx, brickSets = NULL, silent = TRUE) {
 
     ## by final heating system, without zero state ====
     reportAgg(v_renovation,
-              "Renovation|Residential|all|With zero|{hsr} (bn m2/yr)", brickSets,
+              "Renovation|Residential|Final with zero|{hsr} (bn m2/yr)", brickSets,
               agg = c(bs = "all", hs = "all", bsr = "all0", vin = "all", loc = "all", typ = "res", inc = "all"),
               rprt = c(hsr = "all0"),
               silent = silent),
