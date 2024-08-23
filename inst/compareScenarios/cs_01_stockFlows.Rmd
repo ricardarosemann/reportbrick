@@ -131,18 +131,18 @@ walk(locationRes, showLinePlots, data = data)
 
 #### by Space heating (initial state)
 ```{r Renovation-Residential-(heatingBefore)}
-showAreaAndBarPlots(data, vars = heatingResBefore, tot = totBefore, orderVars = "user", scales = "fixed")
+showAreaAndBarPlots(data, vars = heatingResBefore, orderVars = "user", scales = "fixed")
 walk(heatingResBefore, showLinePlots, data = data)
 ```
 
 #### by Space heating (final state)
 ```{r Renovation-Residential-(heatingAfter)}
-showAreaAndBarPlots(data, vars = heatingResAfter, tot = totAfter, orderVars = "user", scales = "fixed")
+showAreaAndBarPlots(data, vars = heatingResAfter, orderVars = "user", scales = "fixed")
 ```
 
 #### by Space heating (final state, with zero renovation)
 ```{r Renovation-Residential-(heatingAfter)}
-showAreaAndBarPlots(data, vars = heatingResAfterZero, tot = totAfterZero, orderVars = "user", scales = "fixed")
+showAreaAndBarPlots(data, vars = heatingResAfterZero, orderVars = "user", scales = "fixed")
 walk(heatingResAfterZero, showLinePlots, data = data)
 ```
 
