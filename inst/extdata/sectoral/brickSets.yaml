@@ -39,6 +39,23 @@ hsr:
       subsets: [all, elec]
 
 
+## Renovation ====
+bsr.hsr:
+  subsets:
+    all: [low.biom, low.dihe, low.ehp1, low.reel, low.h2bo, low.gabo,
+          low.libo, low.sobo, low.0,
+          med.biom, med.dihe, med.ehp1, med.reel, med.h2bo, med.gabo,
+          med.libo, med.sobo, med.0,
+          high.biom, high.dihe, high.ehp1, high.reel, high.h2bo, high.gabo,
+          high.libo, high.sobo, high.0,
+          0.biom, 0.dihe, 0.ehp1, 0.reel, 0.h2bo, 0.gabo,0.libo, 0.sobo]
+
+hs.hsr:
+  subsets:
+    identRepl: [biom.biom, dihe.dihe, ehp1.ehp1, reel.reel, h2bo.h2bo,
+                gabo.gabo, libo.libo, sobo.sobo]
+
+
 ## Energy carrier ====
 carrier:
   elements:

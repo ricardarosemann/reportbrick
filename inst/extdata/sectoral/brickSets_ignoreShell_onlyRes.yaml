@@ -22,4 +22,11 @@ typ:
     MFH: MFH
   subsets:
     res: [SFH, MFH]
+
+
+## Renovation ====
+# Only `0` for renovation
+bsr.hsr:
+  subsets:
+    all: [0.biom, 0.dihe, 0.ehp1, 0.reel, 0.h2bo, 0.gabo, 0.libo, 0.sobo]
 ...

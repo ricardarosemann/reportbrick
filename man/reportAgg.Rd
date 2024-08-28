@@ -34,6 +34,11 @@ of set elements to report.}
 \description{
 Report aggregated quantities
 }
+\note{
+To consider specific combinations of dimensions in both \code{agg} or
+  \code{rprt}, the combination can be given just like one dimension
+  separated by \code{.}.
+}
 \author{
 Robin Hasse
 }
