@@ -11,11 +11,17 @@
 #'   dimension names of \code{x} and values are either set elements or subsets
 #'   of set elements to report.
 #' @param silent boolean, suppress warnings and printing of dimension mapping
+#' @note To consider specific combinations of dimensions in both \code{agg} or
+#'   \code{rprt}, the combination can be given just like one dimension
+#'   separated by \code{.}.
 #'
 #' @author Robin Hasse
 #'
-#' @importFrom magclass getSets
+#' @importFrom magclass getSets ndim
 #' @importFrom utils tail capture.output
+#' @importFrom tidyr separate
+#' @importFrom dplyr %>%
+#' @importFrom stringr str_escape
 
 reportAgg <- function(x,
                       name,
@@ -29,16 +35,17 @@ reportAgg <- function(x,
   dims <- unname(tail(getSets(x, 3), -2))
 
   # check that each dimension is either aggregated or reported
-  missingDims <- setdiff(dims, c(names(agg), names(rprt)))
+  specifiedDims <- .split(c(names(agg), names(rprt)))
+  missingDims <- setdiff(dims, specifiedDims)
   if (length(missingDims) > 0) {
     stop("The following dimensions are neither aggregated nor reported ",
          "individually: ", paste(missingDims, collapse = ", "))
   }
-  if (!setequal(dims, c(names(agg), names(rprt)))) {
+  if (!setequal(dims, specifiedDims)) {
     stop("Each of the following dimension has to be either aggregated or ",
          "reported individually: ", paste(dims, collapse = ", "), ". ",
-         "You want to aggegate ", paste(names(agg), collapse = ", "),
-         " and report ", paste(names(rprt), collapse = ", "), ".")
+         "You want to aggegate ", paste(.split(names(agg)), collapse = ", "),
+         " and report ", paste(.split(names(rprt)), collapse = ", "), ".")
   }
 
   tagsInName <- .findTags(name)
@@ -50,9 +57,9 @@ reportAgg <- function(x,
            paste(tagsInName, collapse = ", "))
     }
   } else {
-    if (!setequal(names(rprt), tagsInName)) {
+    if (!setequal(.split(names(rprt)), .split(tagsInName))) {
       stop("Inconsistency between name tags (", paste(tagsInName, collapse = ", "),
-           ") and reported dimensions (", paste(names(rprt)), ").")
+           ") and reported dimensions (", paste(.split(names(rprt))), ").")
     }
   }
 
@@ -87,10 +94,19 @@ reportAgg <- function(x,
   } else {
     # combination of entries of reporting dimensions
     rprtCombinations <- do.call(expand.grid, map$rprt)
+    for (cd in grep("\\.", colnames(rprtCombinations), value = TRUE)) {
+      if (cd %in% tagsInName) {
+        # the combined dimension tag is used -> nothing to do
+        next
+      }
+      # the combined dimension is tagged individually -> split the combined
+      # dimension and their entries to treat them as multiple primary dimensions
+      rprtCombinations <- rprtCombinations %>%
+        separate(cd, .split(cd))
+    }
 
     # loop over reporting combinations
     out <- do.call(mbind, apply(rprtCombinations, 1, function(comb) {
-
       # replace dimension tags to get final variable name
       outName <- name
       for (r in names(comb)) {
@@ -100,7 +116,7 @@ reportAgg <- function(x,
       }
 
       # select combination of reporting values
-      combData <- do.call(mselect, c(list(x = x), comb))
+      combData <- .select(x, comb)
       if (length(combData) == 0) {
         if (isFALSE(silent)) {
           message("Missing elements to report. Skip '", outName, "'.")
@@ -137,13 +153,12 @@ reportAgg <- function(x,
     mElements <- lapply(names(m), function(d) {
       # check if dim is defined in brickSets
       if (!(d %in% names(brickSets))) {
-        stop("The brick sets file ", attr(brickSets, "file"), "has no mapping ",
+        stop("The brick sets file ", attr(brickSets, "file"), " has no mapping ",
              "for the dimension '", d, "'.")
       }
 
       # explicit list of dimension elements
       unlist(lapply(m[[d]], function(val) {
-
         if (val %in% names(brickSets[[d]][["elements"]])) {
           return(val)
         }
@@ -206,7 +221,7 @@ reportAgg <- function(x,
     return(NULL)
   }
 
-  do.call(mselect, c(list(x = x, agg))) %>%
+  do.call(.select, c(list(x = x, agg))) %>%
     dimSums(na.rm = TRUE)
 }
 
@@ -227,16 +242,24 @@ reportAgg <- function(x,
     stop("'x' has length zero.")
   }
 
-  missingDims <- setdiff(names(dimLst), getSets(x))
+  missingDims <- setdiff(.split(names(dimLst)), getSets(x))
   if (length(missingDims) > 0) {
     stop("The following dimensions are listed in 'dimLst' but missing in 'x': ",
          paste(missingDims, collapse = ", "))
   }
   unlist(lapply(names(dimLst), function(dim) {
-    if (!dim %in% getSets(x)) {
-      stop("x has no dimension called ", dim)
+    if (!all(.split(dim) %in% getSets(x))) {
+      stop("x has no dimension(s) called ", paste(.split(dim), collapse = ", "))
     }
-    setdiff(dimLst[[dim]], getItems(x, dim = dim))
+    if (grepl("\\.", dim)) {
+      existingElements <- unique(sub(
+        pattern = paste(rep("(.*)", magclass::ndim(x, 3)), collapse = "\\."),
+        replacement = paste(paste0("\\", match(.split(dim), tail(getSets(x), -2))), collapse = "\\."),
+        x = getItems(x, dim = 3)
+      ))
+      return(setdiff(dimLst[[dim]], existingElements))
+    }
+    return(setdiff(dimLst[[dim]], getItems(x, dim = dim)))
   }))
 }
 
@@ -270,7 +293,7 @@ reportAgg <- function(x,
 #' @returns vector of tags in name, NULL if there are none
 
 .findTags <- function(name) {
-  tags <- gregexpr("\\{[a-z]+\\}", name)[[1]]
+  tags <- gregexpr("\\{[a-z\\.]+\\}", name)[[1]]
   tags <- if (all(tags == -1)) {
     NULL
   } else {
@@ -281,4 +304,53 @@ reportAgg <- function(x,
     }))
   }
   return(tags)
+}
+
+
+
+
+
+#' select values from MAgPIE-obect
+#'
+#' This is a wrapper around \code{magclass::mselect} that also allows the
+#' selection of combinations of multiple dimensions.
+#'
+#' @param x MAgPIE object
+#' @param ... entry selection. Combined dimensions have to be seperated with
+#'   \code{.} for both the set names and the set elements.
+#' @returns MAgPIE object containing only selected entries
+
+.select <- function(x, ...) {
+  dims <- as.list(...)
+  combinedDims <- grep("\\.", names(dims), value = TRUE)
+  singleDims <- setdiff(names(dims), combinedDims)
+
+  if (length(singleDims) > 0) {
+    x <- mselect(x, dims[singleDims])
+  }
+
+  if (length(combinedDims) > 0) {
+    # successively select combined dimensions
+    x <- Reduce(x = combinedDims, init = x, f = function(data, cd) {
+      # wild card selection that should find every element in each dimension
+      patternRaw <- rep("[a-zA-Z0-9-]+", ndim(data, 3))
+      names(patternRaw) <- tail(getSets(data), -2)
+
+      # build a regex that combines the patterns for each element combination
+      # with a OR relationship
+      regex <- paste(unlist(lapply(dims[[cd]], function(elem) {
+        # take wild card selection and replace elements that have to be matched
+        pattern <- patternRaw
+        pattern[.split(cd)] <- str_escape(.split(elem))
+        # subdimensions of MAgPIE objects are separated with .
+        paste(pattern, collapse = "\\.")
+      })), collapse = "|")
+
+      # select matching items
+      items <- grep(regex, getItems(x, 3), value = TRUE)
+      data[, , items]
+    })
+  }
+
+  return(x)
 }
