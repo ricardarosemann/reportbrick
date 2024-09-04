@@ -100,9 +100,12 @@ convGDX2MIF <- function(gdx,
 
 .findInconsistenSetElements <- function(brickSets, gdx) {
   m <- Container$new(gdx)
-  setsGdx <- setNames(m$getSymbols(names(brickSets)), names(brickSets))
+  sets <- unique(.split(names(brickSets)))
+  setsGdx <- setNames(m$getSymbols(sets), sets)
   do.call(rbind, lapply(names(brickSets), function(s) {
-    elementsGdx <- as.character(setsGdx[[s]]$records[[1]])
+    elementsGdx <- .combinations(lapply(.split(s), function(ps) {
+      as.character(setsGdx[[ps]]$records[[1]])
+    }))
     elementsMap <- names(brickSets[[s]][["elements"]])
     inconsistencies <- list(missing = setdiff(elementsGdx, elementsMap),
                             surplus = setdiff(elementsMap, elementsGdx))
