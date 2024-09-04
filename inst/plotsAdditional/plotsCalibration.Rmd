@@ -8,7 +8,7 @@ output:
     fig_caption: false
 params:
     docTitle: "BRICK calibration report"
-    cal: "BRICK_calibration_report.csv"
+    file: "BRICK_calibration_report.csv"
     path: "C:\\Users\\ricardar\\Documents\\Results\\BRICK\\calibration-tests\\extrElec-vin\\lowEhp1-2010-30Iter0_1A"
     scenNames: NULL
     savePlots: TRUE
@@ -30,7 +30,7 @@ knitr::opts_chunk$set(
 ```{r set variables and functions, check existence of first file}
 
 # Assemble all file paths
-filePath <- file.path(params$path, params$cal)
+filePath <- file.path(params$path, params$file)
 
 # Check if at least one file in the given paths exists
 if (!any(file.exists(filePath))) {
