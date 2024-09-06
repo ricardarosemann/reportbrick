@@ -23,6 +23,11 @@ location <- c(
   "Urban",
   "Rural"
 )
+shell <- c(
+  "Low efficiency",
+  "Medium efficiency",
+  "High efficiency"
+)
 heating <- c(
   "Biomass heater",
   "District heating",

@@ -110,11 +110,16 @@ tot <- "Renovation|Residential"
 totBefore <- paste(tot, "Initial", sep = "|")
 totAfter <- paste(tot, "Final", sep = "|") # for proper plotting
 totAfterZero <- paste(tot, "Final with zero", sep = "|")
+shellRes <- paste(tot, shell, sep = "|")
 heatingResBefore <- paste(tot, "Initial", heating, sep = "|")
 heatingResAfter <- paste(tot, "Final", heating0, sep = "|")
 heatingResAfterZero <- paste(tot, "Final with zero", heating0, sep = "|")
 typeRes <- paste(tot, type, sep = "|")
 locationRes <- paste(tot, location, sep = "|")
+identReplRes <- paste(tot, c("Identical replacement", "Change of heating system"), sep = "|")
+identReplHsRes <- lapply(heating, function(hsr) {
+  paste(identReplRes, hsr, sep = "|")
+})
 ```
 
 #### by building type
@@ -127,6 +132,12 @@ walk(typeRes, showLinePlots, data = data)
 ```{r Renovation-Residential-(location)}
 showAreaAndBarPlots(data, vars = locationRes, tot = tot, orderVars = "user", scales = "fixed")
 walk(locationRes, showLinePlots, data = data)
+```
+
+#### by building shell (final state)
+```{r Renovation-Residential-(shell)}
+showAreaAndBarPlots(data, vars = shellRes, orderVars = "user", scales = "fixed")
+walk(shellRes, showLinePlots, data = data)
 ```
 
 #### by Space heating (initial state)
@@ -144,6 +155,17 @@ showAreaAndBarPlots(data, vars = heatingResAfter, orderVars = "user", scales = "
 ```{r Renovation-Residential-(heatingAfter)}
 showAreaAndBarPlots(data, vars = heatingResAfterZero, orderVars = "user", scales = "fixed")
 walk(heatingResAfterZero, showLinePlots, data = data)
+```
+
+#### by identical replacement or not
+```{r Renovation-Residential-(identicalReplacement)}
+showAreaAndBarPlots(data, vars = identReplRes, orderVars = "user", scales = "fixed")
+```
+
+#### by identical replacement and by heating system
+```{r Renovation-Residential-(heating-identicalReplacement)}
+showAreaAndBarPlots(data, vars = unlist(identReplHsRes), orderVars = "user", scales = "fixed")
+walk(identReplHsRes, showAreaAndBarPlots, data = data, orderVars = "user", scales = "fixed")
 ```
 
 ### Commercial
