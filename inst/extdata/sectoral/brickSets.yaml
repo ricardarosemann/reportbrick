@@ -54,6 +54,7 @@ hs.hsr:
   subsets:
     identRepl: [biom.biom, dihe.dihe, ehp1.ehp1, reel.reel, h2bo.h2bo,
                 gabo.gabo, libo.libo, sobo.sobo]
+    trueRenov: identRepl_C
 
 
 ## Energy carrier ====

@@ -107,6 +107,28 @@ readBrickSets <- function(tmpl = NULL) {
     }
   }
 
+  # auto-generate compliment set -----------------------------------------------
+
+  # If a subset <set1> is specified as <set2>_C in the yaml, automatically compute
+  # its elements as the compliment set of <set2>.
+  # The compliment operation currently ignores all elements that contain a 0.
+  # (This might need to be adjusted in the future)
+  for (dim in names(brickSetsExplicit)) {
+    if ("subsets" %in% names(brickSetsExplicit[[dim]])) {
+      complimentSets <- grep("_C$", brickSetsExplicit[[dim]][["subsets"]], value = TRUE)
+      if (length(complimentSets) >= 1) {
+        brickSetsExplicit[[dim]][["subsets"]][names(complimentSets)] <- lapply(
+          sub("_C$", "", complimentSets),
+          function(set) {
+              dimElements <- grep("0", names(brickSetsExplicit[[dim]][["elements"]]),
+                                  value = TRUE, invert = TRUE)
+              return(setdiff(dimElements, brickSetsExplicit[[dim]][["subsets"]][[set]]))
+          }
+        )
+      }
+    }
+  }
+
 
   attr(brickSetsExplicit, "file") <- file
   return(brickSetsExplicit)

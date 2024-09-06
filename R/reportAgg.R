@@ -162,7 +162,7 @@ reportAgg <- function(x,
         if (val %in% names(brickSets[[d]][["elements"]])) {
           return(val)
         }
-        if (val %in% names(brickSets[[d]][["subsets"]])) {
+        if (val %in% names(brickSets[[d]][["subsets"]])) { #TODO: Here compliment sets could also be specified
           return(brickSets[[d]][["subsets"]][[val]])
         } else {
           if (isFALSE(silent)) {

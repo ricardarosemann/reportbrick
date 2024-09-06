@@ -96,7 +96,7 @@ reportRenovation <- function(gdx, brickSets = NULL, silent = TRUE) {
               silent = silent),
 
 
-    ## by final heating system, without zero state ====
+    ## by final heating system, with zero state ====
     reportAgg(v_renovation,
               "Renovation|Residential|Final with zero|{hsr} (bn m2/yr)", brickSets,
               agg = c(bs = "all", hs = "all", bsr = "all0", vin = "all", loc = "all", typ = "res", inc = "all"),
@@ -110,36 +110,25 @@ reportRenovation <- function(gdx, brickSets = NULL, silent = TRUE) {
                       typ = "res", inc = "all"),
               silent = silent),
 
+    ## only changes of heating systems ====
+    reportAgg(v_renovation,
+              "Renovation|Residential|Change of heating system (bn m2/yr)", brickSets,
+              agg = c(bs = "all", hs.hsr = "trueRenov", bsr = "all0", vin = "all", loc = "all", typ = "res", inc = "all"),
+              silent = silent),
+
     ## only identical replacement by heating system ====
     reportAgg(v_renovation,
               "Renovation|Residential|Identical replacement|{hs.hsr} (bn m2/yr)", brickSets,
               agg = c(bs = "all", bsr = "all0", vin = "all", loc = "all", typ = "res", inc = "all"),
               rprt = c(hs.hsr = "identRepl"),
-              silent = silent)
-
-  )
-
-  out <- mbind(
-
-    out,
-
-    ## only changes of heating systems ====
-    setNames(
-      out[, , "Renovation|Residential|Heating (bn m2/yr)"]
-      - out[, , "Renovation|Residential|Identical replacement (bn m2/yr)"],
-      "Renovation|Residential|Change of heating system (bn m2/yr)"
-    ),
+              silent = silent),
 
     ## only changes of heating systems by heating system ====
-    do.call(mbind, lapply(brickSets[["hsr"]][["subsets"]][["all"]], function(elemName) {
-      elem <- brickSets[["hsr"]][["elements"]][[elemName]]
-      setNames(
-        out[, , paste0("Renovation|Residential|Final|", elem, " (bn m2/yr)")]
-        - out[, , paste0("Renovation|Residential|Identical replacement|", elem, " (bn m2/yr)")],
-        paste0("Renovation|Residential|Change of heating system|", elem, " (bn m2/yr)")
-      )
-    })
-    )
+    reportAgg(v_renovation,
+              "Renovation|Residential|Change of heating system|{hs.hsr} (bn m2/yr)", brickSets,
+              agg = c(bs = "all", bsr = "all0", vin = "all", loc = "all", typ = "res", inc = "all"),
+              rprt = c(hs.hsr = "trueRenov"),
+              silent = silent)
 
   )
 
