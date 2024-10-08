@@ -109,16 +109,16 @@ showAreaAndBarPlots(data, vars = subsec, tot = tot, orderVars = "user", scales =
 tot <- "Renovation|Residential"
 totBefore <- paste(tot, "Initial", sep = "|")
 totAfter <- paste(tot, "Final", sep = "|") # for proper plotting
-totAfterZero <- paste(tot, "Final with zero", sep = "|")
-shellRes <- paste(tot, shell, sep = "|")
-heatingResBefore <- paste(tot, "Initial", heating, sep = "|")
-heatingResAfter <- paste(tot, "Final", heating0, sep = "|")
-heatingResAfterZero <- paste(tot, "Final with zero", heating0, sep = "|")
+shellResAfter <- paste(totAfter, shell, sep = "|")
+heatingResBefore <- paste(totBefore, heating, sep = "|")
+heatingResAfter <- paste(totAfter, heating, sep = "|")
+heatingResAfterZero <- paste(totAfter, heating0, sep = "|")
 typeRes <- paste(tot, type, sep = "|")
 locationRes <- paste(tot, location, sep = "|")
-identReplRes <- paste(tot, c("Identical replacement", "Change of heating system"), sep = "|")
+identReplRes <- paste(tot, c("Heating|Identical replacement", "Change of heating system"), sep = "|")
+identReplHsRes <- paste(tot, c("Identical replacement", "Change of heating system|Final"), sep = "|")
 identReplHsRes <- lapply(heating, function(hsr) {
-  paste(identReplRes, hsr, sep = "|")
+  paste(identReplHsRes, hsr, sep = "|")
 })
 ```
 
@@ -136,8 +136,8 @@ walk(locationRes, showLinePlots, data = data)
 
 #### by building shell (final state)
 ```{r Renovation-Residential-(shell)}
-showAreaAndBarPlots(data, vars = shellRes, orderVars = "user", scales = "fixed")
-walk(shellRes, showLinePlots, data = data)
+showAreaAndBarPlots(data, vars = shellResAfter, orderVars = "user", scales = "fixed")
+walk(shellResAfter, showLinePlots, data = data)
 ```
 
 #### by Space heating (initial state)

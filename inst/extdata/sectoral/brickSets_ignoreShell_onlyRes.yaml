@@ -25,6 +25,10 @@ typ:
 
 
 ## Renovation ====
+bs.bsr:
+  subsets:
+    identRepl: []
+
 # Only `0` for renovation
 bsr.hsr:
   subsets:

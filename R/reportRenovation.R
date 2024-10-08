@@ -39,6 +39,11 @@ reportRenovation <- function(gdx, brickSets = NULL, silent = TRUE) {
               agg = c(bs = "all", hs = "all", bsr.hsr = "all", vin = "all", loc = "all", typ = "res", inc = "all"),
               silent = silent),
     reportAgg(v_renovation,
+              "Renovation|Residential|Shell(bn m2/yr)", brickSets,
+              agg = c(bs = "all", hs = "all", bsr = "all", hsr = "all0", vin = "all",
+                      loc = "all", typ = "res", inc = "all"),
+              silent = silent),
+    reportAgg(v_renovation,
               "Renovation|Residential|Heating (bn m2/yr)", brickSets,
               agg = c(bs = "all", hs = "all", bsr = "all0", hsr = "all", vin = "all",
                       loc = "all", typ = "res", inc = "all"),
@@ -66,7 +71,7 @@ reportRenovation <- function(gdx, brickSets = NULL, silent = TRUE) {
 
     ## by final building shell ====
     reportAgg(v_renovation,
-              "Renovation|Residential|{bsr} (bn m2/yr)", brickSets,
+              "Renovation|Residential|Final|{bsr} (bn m2/yr)", brickSets,
               agg = c(bs = "all", hs = "all", hsr = "all0", vin = "all", loc = "all", typ = "res", inc = "all"),
               rprt = c(bsr = "all"),
               silent = silent),
@@ -92,25 +97,31 @@ reportRenovation <- function(gdx, brickSets = NULL, silent = TRUE) {
     reportAgg(v_renovation,
               "Renovation|Residential|Final|{hsr} (bn m2/yr)", brickSets,
               agg = c(bs = "all", hs = "all", bsr = "all0", vin = "all", loc = "all", typ = "res", inc = "all"),
-              rprt = c(hsr = "all"),
-              silent = silent),
-
-
-    ## by final heating system, without zero state ====
-    reportAgg(v_renovation,
-              "Renovation|Residential|Final with zero|{hsr} (bn m2/yr)", brickSets,
-              agg = c(bs = "all", hs = "all", bsr = "all0", vin = "all", loc = "all", typ = "res", inc = "all"),
               rprt = c(hsr = "all0"),
               silent = silent),
 
-    ## only identical replacement ====
+    ## only identical replacement of the building shell ====
     reportAgg(v_renovation,
-              "Renovation|Residential|Identical replacement (bn m2/yr)", brickSets,
+              "Renovation|Residential|Shell|Identical replacement (bn m2/yr)", brickSets,
+              agg = c(bs.bsr = "identRepl", hs = "all", hsr = "all0", vin = "all", loc = "all",
+                      typ = "res", inc = "all"),
+              silent = silent),
+
+    ## only identical replacement of the heating system ====
+    reportAgg(v_renovation,
+              "Renovation|Residential|Heating|Identical replacement (bn m2/yr)", brickSets,
               agg = c(bs = "all", hs.hsr = "identRepl", bsr = "all0", vin = "all", loc = "all",
                       typ = "res", inc = "all"),
               silent = silent),
 
-    ## only identical replacement by heating system ====
+    ## only identical shell replacement by building shell ====
+    reportAgg(v_renovation,
+              "Renovation|Residential|Identical replacement|{bs.bsr} (bn m2/yr)", brickSets,
+              agg = c(hs = "all", hsr = "all0", vin = "all", loc = "all", typ = "res", inc = "all"),
+              rprt = c(bs.bsr = "identRepl"),
+              silent = silent),
+
+    ## only identical heating replacement by heating system ====
     reportAgg(v_renovation,
               "Renovation|Residential|Identical replacement|{hs.hsr} (bn m2/yr)", brickSets,
               agg = c(bs = "all", bsr = "all0", vin = "all", loc = "all", typ = "res", inc = "all"),
@@ -126,7 +137,7 @@ reportRenovation <- function(gdx, brickSets = NULL, silent = TRUE) {
     ## only changes of heating systems ====
     setNames(
       out[, , "Renovation|Residential|Heating (bn m2/yr)"]
-      - out[, , "Renovation|Residential|Identical replacement (bn m2/yr)"],
+      - out[, , "Renovation|Residential|Heating|Identical replacement (bn m2/yr)"],
       "Renovation|Residential|Change of heating system (bn m2/yr)"
     ),
 
@@ -136,7 +147,7 @@ reportRenovation <- function(gdx, brickSets = NULL, silent = TRUE) {
       setNames(
         out[, , paste0("Renovation|Residential|Final|", elem, " (bn m2/yr)")]
         - out[, , paste0("Renovation|Residential|Identical replacement|", elem, " (bn m2/yr)")],
-        paste0("Renovation|Residential|Change of heating system|", elem, " (bn m2/yr)")
+        paste0("Renovation|Residential|Change of heating system|Final|", elem, " (bn m2/yr)")
       )
     })
     )

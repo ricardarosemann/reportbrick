@@ -40,6 +40,10 @@ hsr:
 
 
 ## Renovation ====
+bs.bsr:
+  subsets:
+    all: [low.low, med.med, high.high]
+
 bsr.hsr:
   subsets:
     all: [low.biom, low.dihe, low.ehp1, low.reel, low.h2bo, low.gabo,
