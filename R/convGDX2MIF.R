@@ -50,23 +50,23 @@ convGDX2MIF <- function(gdx,
 
   ## Stock ====
   message("running reportBuildingStock ...")
-  output <- mbind(output, reportBuildingStock(gdx, brickSets, silent = silent)[, t, ])
+  output <- mbind(output, extendPeriods(reportBuildingStock(gdx, brickSets, silent = silent), t))
 
   ## Construction ====
   message("running reportConstruction ...")
-  output <- mbind(output, reportConstruction(gdx, brickSets, silent = silent)[, t, ])
+  output <- mbind(output, extendPeriods(reportConstruction(gdx, brickSets, silent = silent), t))
 
   ## Renovation ====
   message("running reportRenovation ...")
-  output <- mbind(output, reportRenovation(gdx, brickSets, silent = silent)[, t, ])
+  output <- mbind(output, extendPeriods(reportRenovation(gdx, brickSets, silent = silent), t))
 
   ## Demolition ====
   message("running reportDemolition ...")
-  output <- mbind(output, reportDemolition(gdx, brickSets, silent = silent)[, t, ])
+  output <- mbind(output, extendPeriods(reportDemolition(gdx, brickSets, silent = silent), t))
 
   ## Energy ====
   message("running reportEnergy ...")
-  output <- mbind(output, reportEnergy(gdx, brickSets, silent = silent)[, t, ])
+  output <- mbind(output, extendPeriods(reportEnergy(gdx, brickSets, silent = silent), t))
 
 
   # FINISH ---------------------------------------------------------------------
