@@ -128,17 +128,17 @@ if (length(filePath) == 1) {
   data <- utils::read.csv(filePath)
   color <- "ttot"
   facets <- c("loc", "typ")
-  data <- filter(data, .data[["iteration"]] <= 75)
+  # data <- filter(data, .data[["iteration"]] <= 75)
 } else if (length(filePath) > 1) {
   # If more than one file path is given: Assemble all data in one data frame
   data <- data.frame()
-  # maxIter <- Inf
-  maxIter <- 75
+  maxIter <- Inf
+  # maxIter <- 75
   for (scen in names(filePath)) {
     if (file.exists(filePath[[scen]])) {
       tmp <- utils::read.csv(filePath[[scen]]) %>%
         mutate(scenario = scen, .before = 1)
-      # maxIter <- min(max(tmp[["iteration"]]), maxIter) # Find maximum common iteration
+      maxIter <- min(max(tmp[["iteration"]]), maxIter) # Find maximum common iteration
       data <- rbind(data, tmp)
     } else {
       warning("The file", filePath[[scen]], "does not exist and was skipped.")
