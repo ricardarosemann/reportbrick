@@ -26,6 +26,9 @@ computeLtAnte <- function(variable, data, ttotNum, lifeTimeHs, dims,
   if (is.null(dataValue)) dataValue <- data
   hsCol <- "hs"
 
+  # dtTtotNum <- ttotNum[[length(ttotNum)]] - ttotNum[[length(ttotNum) - 1]]
+  # ttotExtended <- c(ttotNum, ttotNum[[length(ttotNum)]] + seq(dtTtotNum, 50, by = dtTtotNum))
+
   # Assemble in and out time periods and compute starting and end point
   times <- expand.grid(ttot = ttotNum, ttot2 = ttotNum) %>%
     filter(.data[["ttot2"]] >= .data[["ttot"]]) %>%

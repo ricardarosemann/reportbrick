@@ -4,7 +4,7 @@
 \alias{normalizePriceSensitivity}
 \title{Compute a normalized price sensitivity from life-cycle costs}
 \usage{
-normalizePriceSensitivity(dfLcc, brickRes, lambda)
+normalizePriceSensitivity(dfLcc, brickRes, lambda, dims, groupCols = NULL)
 }
 \description{
 Compute a normalized price sensitivity from life-cycle costs

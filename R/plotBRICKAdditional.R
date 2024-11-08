@@ -12,6 +12,9 @@
 #' @param file character vector, name(s) of file(s) with reporting results to be plotted.
 #'   - For \code{plotsCalibration.Rmd}, this is usually the file \code{BRICK_calibration_report.csv}
 #'   - For \code{plotsLcc.Rmd}, this is usually the file \code{BRICK_analysis_report.csv}
+#' @param plottingRoutine Name of Rmd file to be rendered to generate the desired plots.
+#'   - \code{plotsCalibration.Rmd} generates plots of calibration results
+#'   - \code{plotsLcc.Rmd} generates analysis plots including life time assessments and LCC results
 #' @param outName character, string added to the pdf file name and names of additionally saved plots
 #' @param scenNames character vector, scenario names for different paths.
 #'  Needs to be specified if \code{path} is unnamed and contains more than one element.

@@ -9,7 +9,7 @@ output:
 params:
     docTitle: "BRICK Analysis report"
     file: "BRICK_analysis_report.csv"
-    path: "C:/Users/ricardar/Documents/PIAM/brick/output/noShellEUR_2024-08-30_11.38.08"
+    path: "C:/Users/ricardar/Documents/PIAM/brick/output/noShellEUR_2024-11-03_11.33.26"
     scenNames: NULL
     savePlots: TRUE
     name: ""
@@ -32,12 +32,10 @@ knitr::opts_chunk$set(
 
 # Assemble the file path
 filePath <- file.path(params$path, params$file)
-print(filePath)
 
 if (length(filePath) > 1) {
   stop("plotsLcc.Rmd only runs on a single file.")
 }
-print("I am here!")
 
 # Check if the file exists
 if (!file.exists(filePath)) {
@@ -51,13 +49,17 @@ outPath <- dirname(filePath[1])
 
 # Standard procedure to write a calibration plot
 .createLtPlot <- function(data, varName, yname, color,
-                          rprt = NULL, avg = NULL, xname = "ttot2", noFacets = FALSE, xlabName = NULL, ylabName = NULL) {
+                          rprt = NULL, avg = NULL, xname = "ttot2", suppressLateTtot = TRUE,
+                          noFacets = FALSE, xlabName = NULL, ylabName = NULL) {
   
   colorMap <- unlist(readBrickSets(NULL)[[color]][["elements"]])
   
   plData <- filter(data, .data[["variable"]] == varName)
   if (!is.null(colorMap)) {
     plData <- mutate(plData, across(any_of(color), ~ factor(colorMap[.x], levels = colorMap)))
+  }
+  if (isTRUE(suppressLateTtot) && "ttot" %in% colnames(plData) && length(unique(plData[["ttot"]])) > 4) {
+    plData <- filter(plData, .data[["ttot"]] < sort(unique(.data[["ttot"]]), decreasing = TRUE)[[3]])
   }
   
   heading <- paste(varName, "by", color)
@@ -94,7 +96,8 @@ outPath <- dirname(filePath[1])
 }
 
 .createLtTwoBar <- function(data, varName, yname, color,
-                            xname = "ttot2", remCols = NULL, rprt = NULL, xlabName = NULL, ylabName = NULL) {
+                            xname = "ttot2", suppressLateTtot = TRUE,
+                            remCols = NULL, rprt = NULL, xlabName = NULL, ylabName = NULL) {
   
   colorMap <- unlist(readBrickSets(NULL)[[color]][["elements"]])
   
@@ -104,6 +107,9 @@ outPath <- dirname(filePath[1])
   plData <- data %>%
     filter(.data[["variable"]] %in% varName) %>%
     mutate(across(any_of(color), ~ factor(colorMap[.x], levels = colorMap)))
+  if (isTRUE(suppressLateTtot) && "ttot" %in% colnames(plData) && length(unique(plData[["ttot"]])) > 4) {
+    plData <- filter(plData, .data[["ttot"]] < sort(unique(.data[["ttot"]]), decreasing = TRUE)[[3]])
+  }
   plData <- plData %>%
     select(-any_of(remCols)) %>%
     group_by(across(-all_of(c(xname, yname)))) %>%
@@ -156,14 +162,10 @@ outPath <- dirname(filePath[1])
   }
 }
 
-print("Now I'm here!")
-
 ```
 
 ```{r some other text}
-print("Here finally!")
 data <- utils::read.csv(filePath)
-print(head(data))
 
 ```
 
@@ -523,7 +525,7 @@ print(head(data))
 ### Energy ladder 1
 
 ```{r Plot Logit and brick Share with mixed lifetimes, energy ladder 1}
-.createLtTwoBar(data %>% filter(.data[["ttot"]] <= 2040), c("renLogitEl1Mixed", "renBrickEl1"),
+.createLtTwoBar(data, c("renLogitEl1Mixed", "renBrickEl1"),
                 yname = "value", xname = "ttot", color = "hs", rprt = "vin",
                 xlabName = "Time of installation", ylabName = "Shares")
 ```
@@ -531,7 +533,7 @@ print(head(data))
 ### Energy ladder 2
 
 ```{r Plot Logit and brick Share with mixed lifetimes, energy ladder 2}
-.createLtTwoBar(data %>% filter(.data[["ttot"]] <= 2040), c("renLogitEl2Mixed", "renBrickEl2"),
+.createLtTwoBar(data, c("renLogitEl2Mixed", "renBrickEl2"),
                 yname = "value", xname = "ttot", color = "hs", rprt = "vin",
                 xlabName = "Time of installation", ylabName = "Shares")
 ```
@@ -539,7 +541,7 @@ print(head(data))
 ### Energy ladder 3
 
 ```{r Plot Logit and brick Share with mixed lifetimes, energy ladder 3}
-.createLtTwoBar(data %>% filter(.data[["ttot"]] <= 2040), c("renLogitEl3Mixed", "renBrickEl3"),
+.createLtTwoBar(data, c("renLogitEl3Mixed", "renBrickEl3"),
                 yname = "value", xname = "ttot", color = "hs", rprt = "vin",
                 xlabName = "Time of installation", ylabName = "Shares")
 ```

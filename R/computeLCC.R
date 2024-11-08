@@ -15,10 +15,18 @@
 #'
 computeLCC <- function(dfLt, dfCostsOpe, dfCostsRen, dfDt, dfDiscount) {
 
+  if ("hsr" %in% colnames(dfCostsRen)) {
+    hsName <- "hsr"
+  } else {
+    hsName <- "hs"
+  }
+
   lccRes <- .computeLCCOpe(dfLt, dfCostsOpe, dfDt, dfDiscount) %>%
     rename(lccOpe = "value") %>%
+    rename_with(~ if ("hsr" %in% colnames(dfCostsRen)) paste0(.x, "r") else .x, .cols = "hs") %>%
     left_join(dfCostsRen,
-              by = c("hs", "vin", "reg", "loc", "typ", "ttot")) %>%
+              by = c(hsName, "vin", "reg", "loc", "typ", "ttot"))
+  lccRes <- lccRes %>%
     pivot_longer(cols = all_of(c("tangible", "intangible", "lccOpe")),
                  names_to = "costType", values_to = "value") %>%
     mutate(bs = "low")

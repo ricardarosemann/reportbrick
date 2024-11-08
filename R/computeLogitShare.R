@@ -20,6 +20,8 @@
 computeLogitShare <- function(variable, lcc, dims, lambda,
                               energyLadder = NULL, energyLadderNo = NULL) {
 
+  hsName <- "hs"
+
   # For renovation flows: Filter for desired energy ladder positions
   if (variable == "renovation") {
     if (is.null(energyLadder) || is.null(energyLadderNo)) {
@@ -27,9 +29,16 @@ computeLogitShare <- function(variable, lcc, dims, lambda,
               "The corresponding variable is skipped")
       return(mutate(lcc, value = NA)) #TODO: Null might be better here to not overload the output with meaningless data
     }
-    lcc <- lcc %>%
-      left_join(energyLadder, by = "hs") %>%
-      filter(.data[["energyLadder"]] <= energyLadderNo)
+    if ("hsr" %in% colnames(lcc)) {
+      hsName <- "hsr"
+      lcc <- lcc %>%
+        left_join(energyLadder, by = "hs") %>%
+        filter(.data[["energyLadder"]] == energyLadderNo)
+    } else {
+      lcc <- lcc %>%
+        left_join(energyLadder, by = hsName) %>%
+        filter(.data[["energyLadder"]] <= energyLadderNo)
+    }
   }
 
   # Compute total lcc
@@ -39,7 +48,7 @@ computeLogitShare <- function(variable, lcc, dims, lambda,
 
   logitShare <- lccSum %>%
     mutate(expVal = exp(-lambda * .data[["value"]])) %>%
-    group_by(across(-all_of(c("hs", "expVal", "value")))) %>%
+    group_by(across(-all_of(c(hsName, "expVal", "value")))) %>%
     mutate(totVal = sum(.data[["expVal"]])) %>%
     ungroup() %>%
     mutate(value = .data[["expVal"]] / .data[["totVal"]])

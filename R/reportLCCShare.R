@@ -1,7 +1,7 @@
 #' Compute life cycle costs and logit share
 #'
 #' @author Ricarda Rosemann
-#' @importFrom dplyr %>% .data filter full_join group_by last left_join mutate rename right_join select summarise
+#' @importFrom dplyr %>% .data filter full_join group_by inner_join last left_join mutate rename right_join select summarise
 #' @importFrom piamutils getSystemFile
 #' @importFrom stats pweibull
 #' @importFrom tidyr crossing pivot_wider replace_na
@@ -225,20 +225,24 @@ reportLCCShare <- function(gdx, pathLt = NULL) {
 
   costCon <- p_specCostCon %>%
     pivot_wider(names_from = "cost", values_from = "value") %>%
-    left_join(p_ttotVin, by = "ttot")
+    left_join(p_ttotVin, by = "ttot") %>%
+    replace_na(list(intangible = 0))
+  #TODO: Add proper handling to restore zeros from gdx
 
   costRen <- p_specCostRen %>%
+    inner_join(renAllowed, by = c("bs", "hs", "bsr", "hsr")) %>%
     filter(.data[["bsr"]] == 0) %>%
-    group_by(across(-all_of(c("bs", "hs", "value")))) %>%
-    summarise(value = mean(.data[["value"]]), .groups = "drop") %>%
-    rename(bs = "bsr", hs = "hsr") %>%
-    pivot_wider(names_from = cost, values_from = value)
+    # group_by(across(-all_of(c("bs", "hs", "value")))) %>%
+    # summarise(value = mean(.data[["value"]]), .groups = "drop") %>%
+    # rename(bs = "bsr", hs = "hsr") %>%
+    pivot_wider(names_from = cost, values_from = value) %>% replace_na(list(intangible = 0))
 
   # Compute ex-ante LCC and LCOH
   out[["conLccAnte"]] <- computeLCC(out[["conLtAnte"]], p_specCostOpe, costCon, p_dt, p_discountFac)
   out[["conLcohAnte"]] <- computeLCOH(out[["conLccAnte"]], out[["conLtAnte"]], p_ueDemand, p_dt, p_discountFac, dims)
 
-  out[["renLccAnte"]] <- computeLCC(out[["renLtAnte"]], p_specCostOpe, costRen, p_dt, p_discountFac)
+  renLccAnteFull <- computeLCC(out[["renLtAnte"]], p_specCostOpe, costRen, p_dt, p_discountFac)
+  out[["renLccAnte"]] <- .avgAlongDim(renLccAnteFull, c("bs", "hs"), hs = "hsr", bs = "bsr")
   out[["renLcohAnte"]] <- computeLCOH(out[["renLccAnte"]], out[["renLtAnte"]], p_ueDemand, p_dt, p_discountFac, dims)
 
   # Compute ex-post LCC and LCOH
@@ -247,32 +251,52 @@ reportLCCShare <- function(gdx, pathLt = NULL) {
   out[["conLccMixed"]] <- computeLCC(out[["conLtMixed"]], p_specCostOpe, costCon, p_dt, p_discountFac)
   out[["conLcohMixed"]] <- computeLCOH(out[["conLccMixed"]], out[["conLtMixed"]], p_ueDemand, p_dt, p_discountFac, dims)
 
-  out[["renLccMixed"]] <- computeLCC(out[["renLtMixed"]], p_specCostOpe, costRen, p_dt, p_discountFac)
+  renLccMixedFull <- computeLCC(out[["renLtMixed"]], p_specCostOpe, costRen, p_dt, p_discountFac)
+  out[["renLccMixed"]] <- .avgAlongDim(renLccMixedFull, c("bs", "hs"), hs = "hsr", bs = "bsr")
   out[["renLcohMixed"]] <- computeLCOH(out[["renLccMixed"]], out[["renLtMixed"]], p_ueDemand, p_dt, p_discountFac, dims)
 
 
   # COMPUTE LOGIT HEATING SYSTEM SHARES ----------------------------------------
 
-  out[["renLogitEl1Ante"]] <- computeLogitShare("renovation", out[["renLccAnte"]], dims, priceSensHs[["renovation"]],
+  renLogitEl1AnteFull <- computeLogitShare("renovation", renLccAnteFull, c(dims, "bsr", "hsr"), priceSensHs[["renovation"]],
                                                 energyLadder = energyLadder, energyLadderNo = 1)
-  out[["renLogitEl1Mixed"]] <- computeLogitShare("renovation", out[["renLccMixed"]],
-                                                 dims, priceSensHs[["renovation"]], energyLadder, 1)
+  out[["renLogitEl1Ante"]] <- aggregateLogitShare(renLogitEl1AnteFull, select(v_renovationIn, -"dt"))
 
-  out[["renLogitEl2Ante"]] <- computeLogitShare("renovation", out[["renLccAnte"]],
-                                                dims, priceSensHs[["renovation"]], energyLadder, 2)
-  out[["renLogitEl2Mixed"]] <- computeLogitShare("renovation", out[["renLccMixed"]],
-                                                 dims, priceSensHs[["renovation"]], energyLadder, 2)
+  renLogitEl1MixedFull <- computeLogitShare("renovation", renLccMixedFull, c(dims, "bsr", "hsr"), priceSensHs[["renovation"]],
+                                           energyLadder = energyLadder, energyLadderNo = 1)
+  out[["renLogitEl1Mixed"]] <- aggregateLogitShare(renLogitEl1MixedFull, select(v_renovationIn, -"dt"))
 
-  out[["renLogitEl3Ante"]] <- computeLogitShare("renovation", out[["renLccAnte"]],
-                                                dims, priceSensHs[["renovation"]], energyLadder, 3)
-  out[["renLogitEl3Mixed"]] <- computeLogitShare("renovation", out[["renLccMixed"]],
-                                                 dims, priceSensHs[["renovation"]], energyLadder, 3)
+  renLogitEl2AnteFull <- computeLogitShare("renovation", renLccAnteFull, c(dims, "bsr", "hsr"), priceSensHs[["renovation"]],
+                                           energyLadder = energyLadder, energyLadderNo = 2)
+  out[["renLogitEl2Ante"]] <- .avgAlongDim(renLogitEl2AnteFull, c("hs", "bs"), hs = "hsr", bs = "bsr")
+
+  renLogitEl2MixedFull <- computeLogitShare("renovation", renLccMixedFull, c(dims, "bsr", "hsr"), priceSensHs[["renovation"]],
+                                            energyLadder = energyLadder, energyLadderNo = 2)
+
+  out[["renLogitEl2Mixed"]] <- aggregateLogitShare(renLogitEl2MixedFull, select(v_renovationIn, -"dt"))
+
+  renLogitEl3AnteFull <- computeLogitShare("renovation", renLccAnteFull, c(dims, "bsr", "hsr"), priceSensHs[["renovation"]],
+                                           energyLadder = energyLadder, energyLadderNo = 3)
+  out[["renLogitEl3Ante"]] <- .avgAlongDim(renLogitEl3AnteFull, c("hs", "bs"), hs = "hsr", bs = "bsr")
+
+  renLogitEl3MixedFull <- computeLogitShare("renovation", renLccMixedFull, c(dims, "bsr", "hsr"), priceSensHs[["renovation"]],
+                                            energyLadder = energyLadder, energyLadderNo = 3)
+  out[["renLogitEl3Mixed"]] <- aggregateLogitShare(renLogitEl3MixedFull, select(v_renovationIn, -"dt"))
+
 
   # COMPUTE BRICK HEATING SYSTEM SHARES ----------------------------------------
 
   out[["renBrickEl1"]] <- computeBrickShare("renovation", v_renovation, energyLadder, 1)
   out[["renBrickEl2"]] <- computeBrickShare("renovation", v_renovation, energyLadder, 2)
   out[["renBrickEl3"]] <- computeBrickShare("renovation", v_renovation, energyLadder, 3)
+
+  # NORMALIZE PRICE SENSITIVITY ------------------------------------------------
+
+  normLambdaCon <- normalizePriceSensitivity(out[["conLccMixed"]], conVin, priceSensHs[["construction"]], dims)
+  normLambdaRen <- normalizePriceSensitivity(out[["renLccMixed"]], v_renovationIn, priceSensHs[["renovation"]], dims)
+
+  normLambdaConSubs <- normalizePriceSensitivity(out[["conLccMixed"]], conVin, priceSensHs[["construction"]], dims, groupCols = c("reg", "loc", "typ", "inc"))
+  normLambdaRenSubs <- normalizePriceSensitivity(out[["renLccMixed"]], v_renovationIn, priceSensHs[["renovation"]], dims, groupCols = c("reg", "loc", "typ", "inc"))
 
   # WRITE ----------------------------------------------------------------------
 
@@ -330,6 +354,20 @@ reportLCCShare <- function(gdx, pathLt = NULL) {
     summarise(value = sum(.data[["relVal"]]), .groups = "drop") %>%
     mutate(error = .data[["value"]] <= 0.95)
 
+}
+
+#' Compute data average along given dimensions
+#'
+#' @importFrom dplyr
+#'
+.avgAlongDim <- function(df, dimToAvg, ...) {
+
+  df <- df %>%
+    group_by(across(-any_of(c(dimToAvg, "value")))) %>%
+    summarise(value = mean(.data[["value"]]), .groups = "drop") %>%
+    rename(...)
+
+  return(df)
 }
 
 #' Extend dimensions of a data frame by adding NA entries, add variable name
