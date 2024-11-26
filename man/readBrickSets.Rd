@@ -4,7 +4,7 @@
 \alias{readBrickSets}
 \title{Read brickSets mapping}
 \usage{
-readBrickSets(tmpl)
+readBrickSets(tmpl = NULL)
 }
 \arguments{
 \item{tmpl}{character, BRICK reporting template}
@@ -13,5 +13,9 @@ readBrickSets(tmpl)
 named list with definition of common set elements
 }
 \description{
-Read brickSets mapping
+This function creates an explicit named list with the elements of all BRICK
+dimensions and corresponding reporting names.
+}
+\author{
+Robin Hasse
 }

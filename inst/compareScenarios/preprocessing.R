@@ -23,19 +23,27 @@ location <- c(
   "Urban",
   "Rural"
 )
+shell <- c(
+  "Low efficiency",
+  "Medium efficiency",
+  "High efficiency"
+)
 heating <- c(
   "Biomass heater",
   "District heating",
   "Heat pump",
   "Resistive electric",
+  "Hydrogen heater",
   "Gas heater",
   "Liquids heater",
   "Coal heater"
 )
+heating0 <- c(heating, "No change")
 carrier <- c(
   "Biomass",
   "Heat",
   "Electricity",
+  "Hydrogen",
   "Gases",
   "Liquids",
   "Coal"

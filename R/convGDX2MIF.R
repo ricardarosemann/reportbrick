@@ -50,19 +50,23 @@ convGDX2MIF <- function(gdx,
 
   ## Stock ====
   message("running reportBuildingStock ...")
-  output <- mbind(output, reportBuildingStock(gdx, brickSets, silent = silent)[, t, ])
+  output <- mbind(output, extendPeriods(reportBuildingStock(gdx, brickSets, silent = silent), t))
 
   ## Construction ====
   message("running reportConstruction ...")
-  output <- mbind(output, reportConstruction(gdx, brickSets, silent = silent)[, t, ])
+  output <- mbind(output, extendPeriods(reportConstruction(gdx, brickSets, silent = silent), t))
+
+  ## Renovation ====
+  message("running reportRenovation ...")
+  output <- mbind(output, extendPeriods(reportRenovation(gdx, brickSets, silent = silent), t))
 
   ## Demolition ====
   message("running reportDemolition ...")
-  output <- mbind(output, reportDemolition(gdx, brickSets, silent = silent)[, t, ])
+  output <- mbind(output, extendPeriods(reportDemolition(gdx, brickSets, silent = silent), t))
 
   ## Energy ====
   message("running reportEnergy ...")
-  output <- mbind(output, reportEnergy(gdx, brickSets, silent = silent)[, t, ])
+  output <- mbind(output, extendPeriods(reportEnergy(gdx, brickSets, silent = silent), t))
 
 
   # FINISH ---------------------------------------------------------------------
@@ -96,9 +100,12 @@ convGDX2MIF <- function(gdx,
 
 .findInconsistenSetElements <- function(brickSets, gdx) {
   m <- Container$new(gdx)
-  setsGdx <- setNames(m$getSymbols(names(brickSets)), names(brickSets))
+  sets <- unique(.split(names(brickSets)))
+  setsGdx <- setNames(m$getSymbols(sets), sets)
   do.call(rbind, lapply(names(brickSets), function(s) {
-    elementsGdx <- as.character(setsGdx[[s]]$records[[1]])
+    elementsGdx <- .combinations(lapply(.split(s), function(ps) {
+      as.character(setsGdx[[ps]]$records[[1]])
+    }))
     elementsMap <- names(brickSets[[s]][["elements"]])
     inconsistencies <- list(missing = setdiff(elementsGdx, elementsMap),
                             surplus = setdiff(elementsMap, elementsGdx))
