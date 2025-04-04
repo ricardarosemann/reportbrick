@@ -10,7 +10,7 @@ geometry: "a4paper,left=1cm,right=1cm,top=1cm,bottom=1cm,footnotesep=0.0cm,foots
 params:
     docTitle: "BRICK calibration report"
     cal: "BRICK_calibration_report.csv"
-    path: "C:/Users/ricardar/Documents/Results/BRICK/calibration-tests/matchingData/calibration-reporting-tests_2025-03-19_16.40.32/"
+    path: "C:/Users/ricardar/Documents/Results/BRICK/calibration-tests/matchingData/calibration_2025-03-25_11.26.40/"
     scenNames: NULL
     savePlots: false
     name: ""

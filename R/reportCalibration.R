@@ -14,7 +14,7 @@
 #' @importFrom yaml read_yaml
 #' @export
 #'
-reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NULL) {
+reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NULL, deviationTable = FALSE) {
 
 
 
@@ -188,6 +188,44 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
       mutate(hsr = as.character(.data[["hsr"]]),
              hsr = ifelse(.data[["hsr"]] == "gabo" & .data[["hs"]] == "gabo", "gabo_id", .data[["hsr"]]),
              hsr = factor(.data[["hsr"]]))
+  }
+
+  if (isTRUE(deviationTable)) {
+    v_stockDevAll <- v_stock %>%
+      left_join(p_stockCalibTarget %>%
+                  rename(target = "value"),
+                by = c("qty", "bsr", "hsr", "vin", "reg", "loc", "typ", "inc", "ttot")) %>%
+      left_join(p_stockCalibTarget %>%
+                  filter(.data$ttot == 2000) %>%
+                  select(-"ttot") %>%
+                  rename(target0 = "value"),
+                by = c("qty", "bsr", "hsr", "vin", "reg", "loc", "typ", "inc")) %>%
+      left_join(v_stockDev %>%
+                  rename(absDev = "value"),
+                by = c("qty", "bsr", "hsr", "vin", "reg", "loc", "typ", "inc", "ttot", "iteration")) %>%
+      mutate(relDev = .data$absDev / .data$target)
+
+    v_constructionDevAll <- v_construction %>%
+      left_join(p_constructionCalibTarget %>%
+                  rename(target = "value"),
+                by = c("qty", "bsr", "hsr", "reg", "loc", "typ", "inc", "ttot")) %>%
+      left_join(v_constructionDev %>%
+                  rename(absDev = "value"),
+                by = c("qty", "bsr", "hsr", "reg", "loc", "typ", "inc", "ttot", "iteration")) %>%
+      mutate(relDev = .data$absDev / .data$target)
+
+    v_renovationDevAll <- v_renovation %>%
+      left_join(p_renovationCalibTarget %>%
+                  rename(target = "value"),
+                by = c("qty", "bs", "hs", "bsr", "hsr", "vin", "reg", "loc", "typ", "inc", "ttot")) %>%
+      left_join(v_renovationDev %>%
+                  rename(absDev = "value"),
+                by = c("qty", "bs", "hs", "bsr", "hsr", "vin", "reg", "loc", "typ", "inc", "ttot", "iteration")) %>%
+      mutate(relDev = .data$absDev / .data$target)
+
+    write.csv(v_stockDevAll, file = file.path(path, "v_stockDevAll.csv"), row.names = FALSE)
+    write.csv(v_renovationDevAll, file = file.path(path, "v_renovationDevAll.csv"), row.names = FALSE)
+    write.csv(v_constructionDevAll, file = file.path(path, "v_constructionDevAll.csv"), row.names = FALSE)
   }
 
 
