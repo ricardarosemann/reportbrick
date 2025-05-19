@@ -297,6 +297,44 @@ if (all(c("stockDevVin", "renDevVin") %in% data$variable)) {
 }
 ```
 
+## Total absolute stock and flow deviations, aggregated by vintage
+
+```{r Total absolute stock and flow deviations-aggVin}
+if (all(c("stockAggVinDevAgg", "renAggVinDevAgg", "flowAggVinDevAgg") %in% data$variable)) {
+  .createCalibrationPlot(data, "stockAggVinDevAgg", outPath, outName = outName,
+                         color = color, savePlots = savePlots)
+  
+  .createCalibrationPlot(data, "conDevAgg", outPath, outName = outName,
+                         color = color, savePlots = savePlots)
+  
+  .createCalibrationPlot(data, "renAggVinDevAgg", outPath, outName = outName,
+                         color = color, savePlots = savePlots)
+  
+  .createCalibrationPlot(data, "flowAggVinDevAgg", outPath, outName = outName,
+                         color = color, savePlots = savePlots)
+}
+
+```
+
+## Absolute deviations by heating system, aggregated by vintage
+
+```{r absolute stock and flow deviations by hs-aggVin}
+
+if (all(c("stockAggVinDevHs", "renAggVinDevHs", "flowAggVinDevHs") %in% data$variable)) {
+  .createCalibrationPlot(data, "stockAggVinDevHs", outPath, outName = outName,
+                         color = "hsr", facets = facets, savePlots = savePlots)
+  
+  .createCalibrationPlot(data, "conDevHs", outPath, outName = outName,
+                         color = "hsr", facets = facets, savePlots = savePlots)
+  
+  .createCalibrationPlot(data, "renAggVinDevHs", outPath, outName = outName,
+                         color = "hsr", facets = facets, savePlots = savePlots)
+  
+  .createCalibrationPlot(data, "flowAggVinDevHs", outPath, outName = outName,
+                         color = "hsr", facets = facets, savePlots = savePlots)
+}
+
+```
 
 # Relative stock and flow deviations
 
@@ -365,6 +403,44 @@ if (all(c("stockDevVinRel", "renDevVinRel") %in% data$variable)) {
                          color = "vin", facets = facets, savePlots = savePlots)
   .createCalibrationPlot(data, "renDevVinRel", outPath, outName = outName,
                          color = "vin", facets = facets, savePlots = savePlots)
+}
+
+```
+
+## Total relative stock and flow deviations, aggregated by vintage
+
+```{r total relative stock and flow deviations-aggVin}
+if (all(c("stockAggVinDevRel", "renAggVinDevRel", "flowAggVinDevRel") %in% data$variable)) {
+  .createCalibrationPlot(data, "stockAggVinDevRel", outPath, outName = outName,
+                         color = color, savePlots = savePlots)
+  
+  .createCalibrationPlot(data, "conDevRel", outPath, outName = outName,
+                         color = color, savePlots = savePlots)
+  
+  .createCalibrationPlot(data, "renAggVinDevRel", outPath, outName = outName,
+                         color = color, savePlots = savePlots)
+  
+  .createCalibrationPlot(data, "flowAggVinDevRel", outPath, outName = outName,
+                         color = color, savePlots = savePlots)
+}
+
+```
+
+## Relative deviations by heating system, aggregated by vintage
+
+```{r relative stock and flow deviation by hs-aggVin}
+if (all(c("stockAggVinDevHsRel", "renAggVinDevHsRel", "flowAggVinDevHsRel") %in% data$variable)) {
+  .createCalibrationPlot(data, "stockAggVinDevHsRel", outPath, outName = outName,
+                         color = "hsr", facets = facets, savePlots = savePlots)
+  
+  .createCalibrationPlot(data, "conDevHsRel", outPath, outName = outName,
+                         color = "hsr", facets = facets, savePlots = savePlots)
+  
+  .createCalibrationPlot(data, "renAggVinDevHsRel", outPath, outName = outName,
+                         color = "hsr", facets = facets, savePlots = savePlots)
+  
+  .createCalibrationPlot(data, "flowAggVinDevHsRel", outPath, outName = outName,
+                         color = "hsr", facets = facets, savePlots = savePlots)
 }
 
 ```
