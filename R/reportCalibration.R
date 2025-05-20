@@ -194,33 +194,33 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
     v_stockDevAll <- v_stock %>%
       left_join(p_stockCalibTarget %>%
                   rename(target = "value"),
-                by = c("qty", "bsr", "hsr", "vin", "reg", "loc", "typ", "inc", "ttot")) %>%
+                by = c("bsr", "hsr", "vin", "region", "loc", "typ", "inc", "ttot")) %>%
       left_join(p_stockCalibTarget %>%
                   filter(.data$ttot == 2000) %>%
                   select(-"ttot") %>%
                   rename(target0 = "value"),
-                by = c("qty", "bsr", "hsr", "vin", "reg", "loc", "typ", "inc")) %>%
+                by = c("bsr", "hsr", "vin", "region", "loc", "typ", "inc")) %>%
       left_join(v_stockDev %>%
                   rename(absDev = "value"),
-                by = c("qty", "bsr", "hsr", "vin", "reg", "loc", "typ", "inc", "ttot", "iteration")) %>%
+                by = c("bsr", "hsr", "vin", "region", "loc", "typ", "inc", "ttot", "iteration")) %>%
       mutate(relDev = .data$absDev / .data$target)
 
     v_constructionDevAll <- v_construction %>%
       left_join(p_constructionCalibTarget %>%
                   rename(target = "value"),
-                by = c("qty", "bsr", "hsr", "reg", "loc", "typ", "inc", "ttot")) %>%
+                by = c("bsr", "hsr", "region", "loc", "typ", "inc", "ttot")) %>%
       left_join(v_constructionDev %>%
                   rename(absDev = "value"),
-                by = c("qty", "bsr", "hsr", "reg", "loc", "typ", "inc", "ttot", "iteration")) %>%
+                by = c("bsr", "hsr", "region", "loc", "typ", "inc", "ttot", "iteration")) %>%
       mutate(relDev = .data$absDev / .data$target)
 
     v_renovationDevAll <- v_renovation %>%
       left_join(p_renovationCalibTarget %>%
                   rename(target = "value"),
-                by = c("qty", "bs", "hs", "bsr", "hsr", "vin", "reg", "loc", "typ", "inc", "ttot")) %>%
+                by = c("bs", "hs", "bsr", "hsr", "vin", "region", "loc", "typ", "inc", "ttot")) %>%
       left_join(v_renovationDev %>%
                   rename(absDev = "value"),
-                by = c("qty", "bs", "hs", "bsr", "hsr", "vin", "reg", "loc", "typ", "inc", "ttot", "iteration")) %>%
+                by = c("bs", "hs", "bsr", "hsr", "vin", "region", "loc", "typ", "inc", "ttot", "iteration")) %>%
       mutate(relDev = .data$absDev / .data$target)
 
     write.csv(v_stockDevAll, file = file.path(path, "v_stockDevAll.csv"), row.names = FALSE)
@@ -259,7 +259,7 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
       out[["descDirConLate"]] <- out[["descDirCon"]] %>%
         filter(.data[["iteration"]] >= floor(0.4 * maxIter))
 
-  
+
       out[["descDirRenLate"]] <- out[["descDirRen"]] %>%
         filter(.data[["iteration"]] >= floor(0.4 * maxIter))
 
@@ -268,15 +268,15 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
   } else if (priceSensCalibration == "normal") {
 
     out[["intangCostConHs"]] <- .computeAvg(p_x,
-                                            rprt = c("iteration", "reg", "typ", "loc", "inc"))
+                                            rprt = c("iteration", "region", "typ", "loc", "inc"))
     out[["intangCostRenHs"]] <- .computeAvg(p_x,
-                                            rprt = c("iteration", "reg", "typ", "loc", "inc"))
+                                            rprt = c("iteration", "region", "typ", "loc", "inc"))
 
     # Aggregate d, i.e. the direction of steepest descent by heating system
     out[["descDirConHs"]] <- .computeAvg(p_d,
-                                         rprt = c("iteration", "reg", "typ", "loc", "inc", "hsr"))
+                                         rprt = c("iteration", "region", "typ", "loc", "inc", "hsr"))
     out[["descDirRenHs"]] <- .computeAvg(p_d,
-                                         rprt = c("iteration", "reg", "typ", "loc", "inc", "hsr"))
+                                         rprt = c("iteration", "region", "typ", "loc", "inc", "hsr"))
   }
 
 
