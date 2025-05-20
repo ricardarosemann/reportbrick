@@ -148,7 +148,6 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
 
   v_stockTot <- .computeSum(v_stock, rprt = c("iteration", "region", "typ", "loc", "inc", "ttot"))
   v_stockTotHs <- .computeSum(v_stock, rprt = c("iteration", "region", "typ", "loc", "inc", "hsr", "ttot"))
-  if (isTRUE(aggVin)) v_stockAggVin <- .computeSum(v_stock, rprt = setdiff(colnames(v_stock), c("vin", "value")))
 
   if (isTRUE(flowTargets)) {
     v_constructionTot <- .computeSum(v_construction, rprt = c("iteration", "region", "typ", "loc", "inc", "ttot"))
@@ -163,7 +162,6 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
       rprt = c("iteration", "region", "typ", "loc", "inc", "ttot")
     )
     v_renovationTotHs <- .computeSum(v_renovation, rprt = c("iteration", "region", "typ", "loc", "inc", "hsr", "ttot"))
-    if (isTRUE(aggVin)) v_renovationAggVin <- .computeSum(v_renovation, rprt = setdiff(colnames(v_stock), c("vin", "value")))
   }
 
 
@@ -174,7 +172,6 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
 
   v_stockTotDev <- .computeDeviation(v_stockTot, p_stockCalibTargetTot)
   v_stockTotHsDev <- .computeDeviation(v_stockTotHs, p_stockCalibTargetTotHs)
-  if (isTRUE(aggVin)) v_stockAggVinDev <- .computeDeviation(v_stockAggVin, p_stockCalibTargetAggVin)
 
   if (isTRUE(flowTargets)) {
     v_constructionDev <- .computeDeviation(v_construction, p_constructionCalibTarget)
@@ -186,7 +183,6 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
 
     v_renovationTotDev <- .computeDeviation(v_renovationTot, p_renovationCalibTargetTot)
     v_renovationTotHsDev <- .computeDeviation(v_renovationTotHs, p_renovationCalibTargetTotHs)
-    if (isTRUE(aggVin)) v_renovationAggVinDev <- .computeDeviation(v_renovationAggVin, p_renovationCalibTargetAggVin)
 
     p_renovationDevSepGabo <- v_renovationDev %>%
       mutate(hsr = as.character(.data[["hsr"]]),
@@ -330,17 +326,6 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
     out[["flowDevAgg"]] <- .computeFlowSum(out[["conDevAgg"]], out[["renDevAgg"]])
   }
 
-  if (isTRUE(aggVin)) {
-    out[["stockAggVinDevAgg"]] <- .computeSumSq(v_stockAggVinDev, rprt = c("iteration", "reg", "typ", "loc", "inc", "ttot"),
-                                                addSign = FALSE)
-
-    if (isTRUE(flowTargets)) {
-      out[["renAggVinDevAgg"]] <- .computeSumSq(v_renovationAggVinDev, rprt = c("iteration", "reg", "typ", "loc", "inc", "ttot"),
-                                                addSign = FALSE)
-      out[["flowAggVinDevAgg"]] <- .computeFlowSum(out[["conDevAgg"]], out[["renAggVinDevAgg"]])
-    }
-  }
-
   # Aggregate by heating system (hs)
   out[["stockDevHs"]] <- .computeSumSq(v_stockDev, rprt = c("iteration", "region", "typ", "loc", "inc", "hsr", "ttot"))
 
@@ -361,16 +346,6 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
       p_renovationDevSepGabo,
       rprt = c("iteration", "region", "typ", "loc", "inc", "hsr", "ttot")
     )
-  }
-
-  if (isTRUE(aggVin)) {
-    out[["stockAggVinDevHs"]] <- .computeSumSq(v_stockAggVinDev, rprt = c("iteration", "reg", "typ", "loc", "inc", "hsr", "ttot"))
-
-    if (isTRUE(flowTargets)) {
-      out[["renAggVinDevHs"]] <- .computeSumSq(v_renovationAggVinDev, rprt = c("iteration", "reg", "typ", "loc", "inc", "hsr", "ttot"))
-
-      out[["flowAggVinDevHs"]] <- .computeFlowSum(out[["conDevHs"]], out[["renAggVinDevHs"]])
-    }
   }
 
   # Aggregate by vintage (vin)
@@ -403,17 +378,6 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
                                           tCalib)
   }
 
-  if (isTRUE(aggVin)) {
-    out[["stockAggVinDevRel"]] <- .computeRelDev(out[["stockAggVinDevAgg"]], p_stockCalibTargetAggVin, tCalib)
-
-    if (isTRUE(flowTargets)) {
-      out[["renAggVinDevRel"]] <- .computeRelDev(out[["renAggVinDevAgg"]], p_renovationCalibTargetAggVin, tCalib)
-
-      out[["flowAggVinDevRel"]] <- .computeRelDev(out[["flowAggVinDevAgg"]],
-                                                  list(p_constructionCalibTarget, p_renovationCalibTargetAggVin), tCalib)
-    }
-  }
-
   # Separately for all heating systems (hs)
   out[["stockDevHsRel"]] <- .computeRelDev(out[["stockDevHs"]], p_stockCalibTarget, tCalib, notInTargetGrp = "hsr")
 
@@ -430,17 +394,6 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
 
     out[["renDevSepGaboRel"]] <- .computeRelDev(out[["renDevSepGabo"]], p_renovationCalibTarget,
                                                 tCalib, notInTargetGrp = "hsr")
-  }
-
-  if (isTRUE(aggVin)) {
-    out[["stockAggVinDevHsRel"]] <- .computeRelDev(out[["stockAggVinDevHs"]], p_stockCalibTargetAggVin, tCalib)
-
-    if (isTRUE(flowTargets)) {
-      out[["renAggVinDevHsRel"]] <- .computeRelDev(out[["renAggVinDevHs"]], p_renovationCalibTargetAggVin, tCalib)
-
-      out[["flowAggVinDevHsRel"]] <- .computeRelDev(out[["flowAggVinDevHs"]],
-                                                    list(p_constructionCalibTarget, p_renovationCalibTargetAggVin), tCalib)
-    }
   }
 
   # Deviation share for all heating systems (hs)
