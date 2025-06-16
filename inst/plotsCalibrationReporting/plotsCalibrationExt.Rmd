@@ -14,7 +14,7 @@ tCalib <- readGdxSymbol(file.path(dirPath, "input.gdx"), "tcalib", asMagpie = FA
 
 ```
 
-## Stock and flow deviation
+## Absolute stock and flow deviation
 
 ```{r load historic and model data for stocks, compute deviation}
 #TODO: Need to flexibilise this depending on whether this is logit or optim calib
@@ -22,6 +22,18 @@ v_stockAll <- mip::getPlotData("v_stock", file.path(dirPath, allFiles)) %>%
   mutate(iteration = .data[["iteration"]] - 1)
 p_stockCalibTarget <- mip::getPlotData("p_stockCalibTarget", file.path(dirPath, allFiles[1])) %>%
   mutate(iteration = NULL)
+
+# Aggregate over vintages if this was done during the calibration, too
+if (!"stockDevVin" %in% data$variable) {
+  v_stockAll <- v_stockAll %>%
+    group_by(across(-all_of(c("vin", "v_stock")))) %>%
+    summarise(v_stock = sum(.data$v_stock), .groups = "drop")
+  
+  p_stockCalibTarget <- p_stockCalibTarget %>%
+    group_by(across(-all_of(c("vin", "p_stockCalibTarget")))) %>%
+    summarise(p_stockCalibTarget = sum(.data$p_stockCalibTarget), .groups = "drop")
+  
+}
 
 v_stockAll <- left_join(v_stockAll, p_stockCalibTarget,
                         by = setdiff(colnames(v_stockAll), c("iteration", "v_stock"))) %>%
@@ -44,9 +56,22 @@ v_renovationAll <- mip::getPlotData("v_renovation", file.path(dirPath, allFiles)
 p_renovationCalibTarget <- mip::getPlotData("p_renovationCalibTarget", file.path(dirPath, allFiles[1])) %>%
   mutate(iteration = NULL)
 
+# Aggregate over vintages if this was done during the calibration, too
+if (!"stockDevVin" %in% data$variable) {
+  v_renovationAll <- v_renovationAll %>%
+    group_by(across(-all_of(c("vin", "v_renovation")))) %>%
+    summarise(v_renovation = sum(.data$v_renovation), .groups = "drop")
+  
+  p_renovationCalibTarget <- p_renovationCalibTarget %>%
+    group_by(across(-all_of(c("vin", "p_renovationCalibTarget")))) %>%
+    summarise(p_renovationCalibTarget = sum(.data$p_renovationCalibTarget), .groups = "drop")
+  
+}
+
 v_renovationAll <- dplyr::left_join(v_renovationAll, p_renovationCalibTarget,
                         by = setdiff(colnames(v_renovationAll), c("iteration", "v_renovation"))) %>%
-  mutate(dev = .data[["v_renovation"]] - .data[["p_renovationCalibTarget"]])
+  mutate(dev = .data[["v_renovation"]] - .data[["p_renovationCalibTarget"]],
+         devRel = .data$dev / .data$p_renovationCalibTarget)
 
 renDevAll <- v_renovationAll %>%
   filter(.data$ttot %in% tCalib) %>%
@@ -65,7 +90,15 @@ renDev <- renDevAll %>%
   tidyr::replace_na(replace = list(value = 0)) %>%
   dplyr::relocate("value", .after = last_col())
 
+renDevAllRel <- renDevAll %>%
+  select(-"dev") %>%
+  dplyr::rename(value = "devRel") %>%
+  mutate(variable = "renDevAllRel") %>%
+  tidyr::replace_na(replace = list(value = 0)) %>%
+  dplyr::relocate("value", .after = last_col())
+
 renDevAll <- renDevAll %>%
+  select(-"devRel") %>%
   dplyr::rename(value = "dev") %>%
   mutate(variable = "renDevAll") %>%
   tidyr::replace_na(replace = list(value = 0)) %>%
@@ -82,6 +115,7 @@ renTargetAll <- p_renovationCalibTarget %>%
 ### Absolute stock deviation
 
 ```{r plot stock deviation}
+facetsRenDev <- if ("stockDevVin" %in% data$variable) "vin" else NULL
 .createCalibrationPlot(stockDev, "stockDev", outPath, outName = outName, color = "hsr",
                        facets = "vin")
 ```
@@ -89,13 +123,15 @@ renTargetAll <- p_renovationCalibTarget %>%
 ### Absolute renovation deviation by final heating system
 
 ```{r plot renovation deviation}
+facetsRenDev <- if ("stockDevVin" %in% data$variable) "vin" else NULL
 .createCalibrationPlot(renDev, "renDev", outPath, outName = outName, color = "hsr",
-                       facets = "vin")
+                       facets = facetsRenDev)
 ```
 
 ### Absolute renovation deviation by initial heating system
 
 ```{r plot renovation deviation by initial hs}
+facetsRenDev <- if ("stockDevVin" %in% data$variable) "vin" else NULL
 for (hsr in extendedPlots[["filterHsr"]]) {
   renDevAllFilter <- renDevAll[renDevAll["hsr"] == hsr, ]
   .createCalibrationPlot(renDevAllFilter, "renDevAll", outPath, outName = outName, color = "hs",
@@ -106,8 +142,18 @@ for (hsr in extendedPlots[["filterHsr"]]) {
 ### Absolute renovation deviation for each initial heating system
 
 ```{r plot renovation deviation for all initial hs}
+# Use presence of vintage deviation variables to determine whether vintages had been aggregated
+facetsRen <- if ("stockDevVin" %in% data$variable) "vin" else "hs"
 .createCalibrationPlot(renDevAll, "renDevAll", outPath, outName = outName,
-                       color = "hsr", facets = "vin")
+                       color = "hsr", facets = facetsRen)
+```
+
+### Absolute renovation deviation for each final heating system
+
+```{r plot renovation deviation for all final hs}
+facetsRen <- if ("stockDevVin" %in% data$variable) "vin" else "hsr"
+.createCalibrationPlot(renDevAll, "renDevAll", outPath, outName = outName,
+                       color = "hs", facets = facetsRen)
 ```
 
 ### Comparison of identical replacement with zero flow
@@ -122,21 +168,89 @@ for (oneHs in allHs) {
 }
 ```
 
+## Relative stock and flow deviation
+
+### Relative renovation deviation for each initial heating system
+
+```{r plot rel renovation deviation for all initial hs}
+# Use presence of vintage deviation variables to determine whether vintages had been aggregated
+facetsRen <- if ("stockDevVin" %in% data$variable) "vin" else "hs"
+.createCalibrationPlot(renDevAllRel, "renDevAllRel", outPath, outName = outName,
+                       color = "hsr", facets = facetsRen)
+```
+
+### Relative renovation deviation for each final heating system
+
+```{r plot rel renovation deviation for all final hs}
+facetsRen <- if ("stockDevVin" %in% data$variable) "vin" else "hsr"
+.createCalibrationPlot(renDevAllRel, "renDevAllRel", outPath, outName = outName,
+                       color = "hs", facets = facetsRen)
+```
+
 ## Total stocks and flows
 
 ### Comparison of identical replacement with zero flow
 
 ```{r compare identical replacement with zero}
-allHs <- unique(v_renovationAll[["hs"]])
-for (oneHs in allHs) {
-  renAllHs <- v_renovationAll %>%
-    filter(.data$ttot %in% tCalib) %>%
-    select(-"qty", -"bs", -"bsr", -"p_renovationCalibTarget", -"dev") %>%
-    rename(value = "v_renovation") %>%
-    mutate(variable = "renAllHs") %>%
-    relocate("value", .after = last_col()) %>%
-    filter(.data[["hs"]] == oneHs, .data[["hsr"]] %in% c("0", "ehp1", oneHs))
-  .createCalibrationPlot(renAllHs, "renAllHs", outPath, outName = outName,
-                         color = "hsr", facets = "vin", keepCol = "hs")
+# allHs <- unique(v_renovationAll[["hs"]])
+# for (oneHs in allHs) {
+#   renAllHs <- v_renovationAll %>%
+#     filter(.data$ttot %in% tCalib) %>%
+#     select(-"qty", -"bs", -"bsr", -"p_renovationCalibTarget", -"dev") %>%
+#     rename(value = "v_renovation") %>%
+#     mutate(variable = "renAllHs") %>%
+#     relocate("value", .after = last_col()) %>%
+#     filter(.data[["hs"]] == oneHs, .data[["hsr"]] %in% c("0", "ehp1", oneHs))
+#   .createCalibrationPlot(renAllHs, "renAllHs", outPath, outName = outName,
+#                          color = "hsr", facets = "vin", keepCol = "hs")
+# }
+```
+
+## Optimisation quantities
+
+```{r Read optimisation quantity data}
+if (file.exists(file.path(dirPath, "deviationRenIter.csv"))) {
+  descDirRen <- read.csv(file.path(dirPath, "deviationRenIter.csv")) %>%
+    select(-"bs", -"bsr", -"dev") %>%
+    rename(value = "d") %>%
+    mutate(variable = "descDirRen") %>%
+    relocate("value", .after = last_col())
 }
+
+intangCostRen <- mip::getPlotData("p_specCostRen", file.path(dirPath, allFiles)) %>%
+  mutate(iteration = .data[["iteration"]] - 1) %>%
+  filter(.data$cost == "intangible", .data$bsr == "0",
+         .data$ttot %in% tCalib, .data$vin %in% unique(descDirRen$vin)) %>%
+  select(-"cost", -"bs", -"bsr") %>%
+  rename(value = "p_specCostRen") %>%
+  mutate(variable = "intangCostRen") %>%
+  replace_na(list(value = 0)) %>%
+  relocate("value", .after = last_col())
+
+# Aggregate over vintages if this was done during the calibration, too
+if (!"stockDevVin" %in% data$variable) {
+  descDirRen <- descDirRen %>%
+    group_by(across(-all_of(c("vin", "value")))) %>%
+    summarise(value = mean(.data$value), .groups = "drop")
+  
+  intangCostRen <- intangCostRen %>%
+    group_by(across(-all_of(c("vin", "value")))) %>%
+    summarise(value = mean(.data$value), .groups = "drop")
+}
+```
+
+### Descent direction by initial heating system
+
+```{r Plot descent direction by initial heating system}
+facetsRen <- if ("stockDevVin" %in% data$variable) "vin" else "hs"
+.createCalibrationPlot(descDirRen, "descDirRen", outPath, outName = outName,
+                       color = "hsr", facets = facetsRen)
+```
+
+### Intangible costs by initial heating system
+
+```{r Plot intang costs by initial heating system}
+facetsRen <- if ("stockDevVin" %in% data$variable) "vin" else "hs"
+.createCalibrationPlot(intangCostRen, "intangCostRen", outPath, outName = outName,
+                       color = "hsr", facets = facetsRen)
 ```

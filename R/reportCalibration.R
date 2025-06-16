@@ -41,7 +41,10 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
   # Read calibration type and whether vintages are aggregated
   calibOptim <- identical(cfg[["switches"]][["RUNTYPE"]], "optimization")
   aggVin <- identical(cfg[["switches"]][["AGGREGATEDIM"]], "vin")
-  removeDims <- if (isTRUE(aggVin)) "vin" else NULL
+  identRepl <- identical(cfg[["switches"]][["CALIBRESOLUTION"]], "identRepl")
+  removeDims <- NULL
+  removeDims <- if (isTRUE(aggVin)) c(removeDims, "vin")
+  removeDims <- if (isTRUE(identRepl)) c(removeDims, "hs")
 
 
   ## Diagnostic parameters ====
@@ -80,7 +83,8 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
 
   v_renovation <- .readGdxIter(gdx,
                                if (calibOptim) "p_renovation" else "v_renovation", maxIter,
-                               asMagpie = FALSE, ttotFilter = tCalib)
+                               asMagpie = FALSE, ttotFilter = tCalib) %>%
+    .addRenType(identRepl)
 
   dims <- .getDims(list(stock = v_stock, construction = v_construction, renovation = v_renovation),
                    removeDims = removeDims)
@@ -129,6 +133,7 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
     )
 
     p_renovationCalibTarget <- readGdxSymbol(gdxInp, "p_renovationCalibTarget", asMagpie = FALSE) %>%
+      .addRenType(identRepl) %>%
       .computeSum(rprt = dims$renovation)
 
     p_renovationCalibTargetTot <- .computeSum(
@@ -184,10 +189,12 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
     v_renovationTotDev <- .computeDeviation(v_renovationTot, p_renovationCalibTargetTot)
     v_renovationTotHsDev <- .computeDeviation(v_renovationTotHs, p_renovationCalibTargetTotHs)
 
-    p_renovationDevSepGabo <- v_renovationDev %>%
-      mutate(hsr = as.character(.data[["hsr"]]),
-             hsr = ifelse(.data[["hsr"]] == "gabo" & .data[["hs"]] == "gabo", "gabo_id", .data[["hsr"]]),
-             hsr = factor(.data[["hsr"]]))
+    if (isFALSE(identRepl)) {
+      p_renovationDevSepGabo <- v_renovationDev %>%
+        mutate(hsr = as.character(.data[["hsr"]]),
+               hsr = ifelse(.data[["hsr"]] == "gabo" & .data[["hs"]] == "gabo", "gabo_id", .data[["hsr"]]),
+               hsr = factor(.data[["hsr"]]))
+    }
   }
 
   if (isTRUE(deviationTable)) {
@@ -217,10 +224,10 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
     v_renovationDevAll <- v_renovation %>%
       left_join(p_renovationCalibTarget %>%
                   rename(target = "value"),
-                by = c("bs", "hs", "bsr", "hsr", "vin", "region", "loc", "typ", "inc", "ttot")) %>%
+                by = setdiff(dims$renovation, "iteration")) %>%
       left_join(v_renovationDev %>%
                   rename(absDev = "value"),
-                by = c("bs", "hs", "bsr", "hsr", "vin", "region", "loc", "typ", "inc", "ttot", "iteration")) %>%
+                by = dims$renovation) %>%
       mutate(relDev = .data$absDev / .data$target)
 
     write.csv(v_stockDevAll, file = file.path(path, "v_stockDevAll.csv"), row.names = FALSE)
@@ -335,6 +342,11 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
       rprt = c("iteration", "region", "typ", "loc", "inc", "hsr", "ttot")
     )
 
+    out[["renDevHsPrev"]] <- .computeSumSq(
+      v_renovationDev,
+      rprt = c("iteration", "region", "typ", "loc", "inc", "hs", "ttot")
+    )
+
     out[["renDevHs"]] <- .computeSumSq(
       v_renovationDev,
       rprt = c("iteration", "region", "typ", "loc", "inc", "hsr", "ttot")
@@ -342,10 +354,12 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
 
     out[["flowDevHs"]] <- .computeFlowSum(out[["conDevHs"]], out[["renDevHs"]])
 
-    out[["renDevSepGabo"]] <- .computeSumSq(
-      p_renovationDevSepGabo,
-      rprt = c("iteration", "region", "typ", "loc", "inc", "hsr", "ttot")
-    )
+    if (!identRepl) {
+      out[["renDevSepGabo"]] <- .computeSumSq(
+        p_renovationDevSepGabo,
+        rprt = c("iteration", "region", "typ", "loc", "inc", "hsr", "ttot")
+      )
+    }
   }
 
   # Aggregate by vintage (vin)
@@ -379,21 +393,45 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
   }
 
   # Separately for all heating systems (hs)
-  out[["stockDevHsRel"]] <- .computeRelDev(out[["stockDevHs"]], p_stockCalibTarget, tCalib, notInTargetGrp = "hsr")
+  out[["stockDevHsRel"]] <- .computeRelDev(out[["stockDevHs"]], p_stockCalibTarget, tCalib)
 
   if (isTRUE(flowTargets)) {
-    out[["conDevHsRel"]] <- .computeRelDev(out[["conDevHs"]], p_constructionCalibTarget, tCalib, notInTargetGrp = "hsr")
+    out[["conDevHsRel"]] <- .computeRelDev(out[["conDevHs"]], p_constructionCalibTarget, tCalib)
 
-    out[["renDevHsRel"]] <- .computeRelDev(out[["renDevHs"]], p_renovationCalibTarget, tCalib, notInTargetGrp = "hsr")
+    out[["renDevHsPrevRel"]] <- .computeRelDev(out[["renDevHsPrev"]], p_renovationCalibTarget, tCalib)
+
+    out[["renDevHsRel"]] <- .computeRelDev(out[["renDevHs"]], p_renovationCalibTarget, tCalib)
 
     out[["flowDevHsRel"]] <- .computeRelDev(
+      out[["flowDevHs"]],
+      list(p_constructionCalibTarget, p_renovationCalibTarget),
+      tCalib
+    )
+
+    if (!identRepl) {
+      out[["renDevSepGaboRel"]] <- .computeRelDev(out[["renDevSepGabo"]], p_renovationCalibTarget,
+                                                  tCalib)
+    }
+  }
+
+  # Separately for all heating systems (hs), but relative to total target
+  out[["stockDevHsRelAll"]] <- .computeRelDev(out[["stockDevHs"]], p_stockCalibTarget, tCalib, notInTargetGrp = "hsr")
+
+  if (isTRUE(flowTargets)) {
+    out[["conDevHsRelAll"]] <- .computeRelDev(out[["conDevHs"]], p_constructionCalibTarget, tCalib, notInTargetGrp = "hsr")
+
+    out[["renDevHsRelAll"]] <- .computeRelDev(out[["renDevHs"]], p_renovationCalibTarget, tCalib, notInTargetGrp = "hsr")
+
+    out[["flowDevHsRelAll"]] <- .computeRelDev(
       out[["flowDevHs"]],
       list(p_constructionCalibTarget, p_renovationCalibTarget),
       tCalib, notInTargetGrp = "hsr"
     )
 
-    out[["renDevSepGaboRel"]] <- .computeRelDev(out[["renDevSepGabo"]], p_renovationCalibTarget,
-                                                tCalib, notInTargetGrp = "hsr")
+    if (!identRepl) {
+      out[["renDevSepGaboRelAll"]] <- .computeRelDev(out[["renDevSepGabo"]], p_renovationCalibTarget,
+                                                  tCalib, notInTargetGrp = "hsr")
+    }
   }
 
   # Deviation share for all heating systems (hs)
@@ -540,6 +578,20 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
   var <- names(df) %in% c("hs", "bs")
   names(df)[var] <- paste0(names(df)[var], "r")
   return(df)
+}
+
+.addRenType <- function(df, identRepl) {
+  if (isTRUE(identRepl)) {
+    df <- df %>%
+      mutate(across(contains("hs"), as.character),
+             renType = dplyr::case_when(
+               .data$hsr == "0" ~ "0",
+               .data$hs == .data$hsr ~ "identRepl",
+               .default = "newSys"
+             ),
+             across(contains("hs"), as.factor))
+  }
+  df
 }
 
 #' Compute the deviation to target data

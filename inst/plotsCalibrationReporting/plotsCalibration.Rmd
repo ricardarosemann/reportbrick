@@ -10,7 +10,7 @@ geometry: "a4paper,left=1cm,right=1cm,top=1cm,bottom=1cm,footnotesep=0.0cm,foots
 params:
     docTitle: "BRICK calibration report"
     cal: "BRICK_calibration_report.csv"
-    path: "C:/Users/ricardar/Documents/Results/BRICK/calibration-tests/matchingData/calibration-mtch-02-06-fixedB_2025-06-02_14.35.41/"
+    path: "C:/Users/ricardar/Documents/Results/BRICK/calibration-tests/matchingData/calibration-mtch-05-06-fixedB_2025-06-05_10.35.57/"
     scenNames: NULL
     savePlots: false
     name: ""
@@ -273,16 +273,21 @@ if (all(c("stockVin", "renVin") %in% data$variable)) {
 .createCalibrationPlot(data, "conDevHs", outPath, outName = outName,
                        color = "hsr", facets = facets, savePlots = savePlots)
 
+.createCalibrationPlot(data, "renDevHsPrev", outPath, outName = outName,
+                       color = "hs", facets = facets, savePlots = savePlots)
+
 .createCalibrationPlot(data, "renDevHs", outPath, outName = outName,
                        color = "hsr", facets = facets, savePlots = savePlots)
 
 .createCalibrationPlot(data, "flowDevHs", outPath, outName = outName,
                        color = "hsr", facets = facets, savePlots = savePlots)
 
-.createCalibrationPlot(data, "renDevSepGabo", outPath, outName = outName,
-                       color = "hsr", facets = facets, savePlots = savePlots,
-                       addColor = c(gabo_id = "Gas identical replacement"),
-                       newColor = data.frame(row.names = "Gas identical replacement", color = "#8B8378"))
+if ("renDevSepGabo" %in% data$variable) {
+  .createCalibrationPlot(data, "renDevSepGabo", outPath, outName = outName,
+                         color = "hsr", facets = facets, savePlots = savePlots,
+                         addColor = c(gabo_id = "Gas identical replacement"),
+                         newColor = data.frame(row.names = "Gas identical replacement", color = "#8B8378"))
+}
 
 ```
 
@@ -328,16 +333,46 @@ if (all(c("stockDevVin", "renDevVin") %in% data$variable)) {
 .createCalibrationPlot(data, "conDevHsRel", outPath, outName = outName,
                        color = "hsr", facets = facets, savePlots = savePlots)
 
+.createCalibrationPlot(data, "renDevHsPrevRel", outPath, outName = outName,
+                       color = "hs", facets = facets, savePlots = savePlots)
+
 .createCalibrationPlot(data, "renDevHsRel", outPath, outName = outName,
                        color = "hsr", facets = facets, savePlots = savePlots)
 
 .createCalibrationPlot(data, "flowDevHsRel", outPath, outName = outName,
                        color = "hsr", facets = facets, savePlots = savePlots)
 
-.createCalibrationPlot(data, "renDevSepGaboRel", outPath, outName = outName,
-                       color = "hsr", facets = facets, savePlots = savePlots,
-                       addColor = c(gabo_id = "Gas identical replacement"),
-                       newColor = data.frame(row.names = "Gas identical replacement", color = "#FAEBD7"))
+if ("renDevSepGaboRel" %in% data$variable) {
+  .createCalibrationPlot(data, "renDevSepGaboRel", outPath, outName = outName,
+                         color = "hsr", facets = facets, savePlots = savePlots,
+                         addColor = c(gabo_id = "Gas identical replacement"),
+                         newColor = data.frame(row.names = "Gas identical replacement", color = "#FAEBD7"))
+}
+
+```
+
+## Relative deviations by heating system, relative to total target
+
+```{r relative to all stock and flow deviation by hs}
+
+.createCalibrationPlot(data, "stockDevHsRelAll", outPath, outName = outName,
+                       color = "hsr", facets = facets, savePlots = savePlots)
+
+.createCalibrationPlot(data, "conDevHsRelAll", outPath, outName = outName,
+                       color = "hsr", facets = facets, savePlots = savePlots)
+
+.createCalibrationPlot(data, "renDevHsRelAll", outPath, outName = outName,
+                       color = "hsr", facets = facets, savePlots = savePlots)
+
+.createCalibrationPlot(data, "flowDevHsRelAll", outPath, outName = outName,
+                       color = "hsr", facets = facets, savePlots = savePlots)
+
+if ("renDevSepGaboRelAll" %in% data$variable) {
+  .createCalibrationPlot(data, "renDevSepGaboRelAll", outPath, outName = outName,
+                         color = "hsr", facets = facets, savePlots = savePlots,
+                         addColor = c(gabo_id = "Gas identical replacement"),
+                         newColor = data.frame(row.names = "Gas identical replacement", color = "#FAEBD7"))
+}
 
 ```
 
