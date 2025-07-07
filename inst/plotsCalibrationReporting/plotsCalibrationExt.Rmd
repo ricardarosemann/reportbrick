@@ -12,6 +12,9 @@ tCalib <- readGdxSymbol(file.path(dirPath, "input.gdx"), "tcalib", asMagpie = FA
   as.character() %>%
   as.numeric()
 
+# Allowed renovation transitions
+renAllowed <- readGdxSymbol(file.path(dirPath, "input.gdx"), "renAllowed", asMagpie = FALSE)
+
 ```
 
 ## Absolute stock and flow deviation
@@ -221,6 +224,7 @@ intangCostRen <- mip::getPlotData("p_specCostRen", file.path(dirPath, allFiles))
   mutate(iteration = .data[["iteration"]] - 1) %>%
   filter(.data$cost == "intangible", .data$bsr == "0",
          .data$ttot %in% tCalib, .data$vin %in% unique(descDirRen$vin)) %>%
+  dplyr::right_join(renAllowed, by = c("bs", "hs", "bsr", "hsr")) %>%
   select(-"cost", -"bs", -"bsr") %>%
   rename(value = "p_specCostRen") %>%
   mutate(variable = "intangCostRen") %>%

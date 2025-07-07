@@ -9,12 +9,14 @@
 #'
 #' @author Ricarda Rosemann
 #'
+#' @importFrom dplyr %>% right_join
 #' @importFrom tidyr crossing replace_na
 #' @importFrom utils read.csv write.csv
 #' @importFrom yaml read_yaml
 #' @export
 #'
-reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NULL, deviationTable = FALSE) {
+reportCalibration <- function(gdx, outName = NULL, flowTargets = TRUE,
+                              priceSensCalibration = NULL, deviationTable = FALSE, pathToTarget = NULL) {
 
 
 
@@ -45,6 +47,9 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
   removeDims <- NULL
   removeDims <- if (isTRUE(aggVin)) c(removeDims, "vin")
   removeDims <- if (isTRUE(identRepl)) c(removeDims, "hs")
+  
+  # Allowed renovation transitions
+  renAllowed <- readGdxSymbol(gdx, "renAllowed", asMagpie = FALSE)
 
 
   ## Diagnostic parameters ====
@@ -84,6 +89,7 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
   v_renovation <- .readGdxIter(gdx,
                                if (calibOptim) "p_renovation" else "v_renovation", maxIter,
                                asMagpie = FALSE, ttotFilter = tCalib) %>%
+    dplyr::right_join(renAllowed, by = c("bs", "hs", "bsr", "hsr")) %>%
     .addRenType(identRepl)
 
   dims <- .getDims(list(stock = v_stock, construction = v_construction, renovation = v_renovation),
@@ -108,9 +114,19 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
 
   ## Calibration targets ====
 
-  p_stockCalibTarget <- readGdxSymbol(gdxInp, "p_stockCalibTarget", asMagpie = FALSE) %>%
-    .replaceVarName() %>%
-    .computeSum(rprt = dims$stock)
+  if (is.null(pathToTarget)) {
+    p_stockCalibTarget <- readGdxSymbol(gdxInp, "p_stockCalibTarget", asMagpie = FALSE) %>%
+      .replaceVarName() %>%
+      .computeSum(rprt = dims$stock)
+  } else {
+    calibTarget <- .readCalibTarget(pathToTarget, tCalib)
+    p_stockCalibTarget <- calibTarget[["stock"]] %>%
+      filter(.data$qty == "area") %>%
+      select(-"qty") %>%
+      .replaceVarName() %>%
+      .computeSum(rprt = dims$stock) %>%
+      mutate(across(!all_of("value"), ~ factor(.x, levels = levels(v_stock[[dplyr::cur_column()]]))))
+  }
 
   p_stockCalibTargetTot <- .computeSum(p_stockCalibTarget, rprt = c("iteration", "region", "typ", "loc", "inc", "ttot"))
   p_stockCalibTargetTotHs <- .computeSum(
@@ -119,9 +135,18 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
   )
 
   if (isTRUE(flowTargets)) {
-    p_constructionCalibTarget <- readGdxSymbol(gdxInp, "p_constructionCalibTarget", asMagpie = FALSE) %>%
-      .replaceVarName() %>%
-      .computeSum(rprt = dims$construction)
+    if (is.null(pathToTarget)) {
+      p_constructionCalibTarget <- readGdxSymbol(gdxInp, "p_constructionCalibTarget", asMagpie = FALSE) %>%
+        .replaceVarName() %>%
+        .computeSum(rprt = dims$construction)
+    } else {
+      p_constructionCalibTarget <- calibTarget[["construction"]] %>%
+        filter(.data$qty == "area") %>%
+        select(-"qty") %>%
+        .replaceVarName() %>%
+        .computeSum(rprt = dims$construction) %>%
+        mutate(across(-all_of("value"), ~ factor(.x, levels = levels(v_construction[[dplyr::cur_column()]]))))
+    }  
 
     p_constructionCalibTargetTot <- .computeSum(
       p_constructionCalibTarget,
@@ -131,10 +156,20 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
       p_constructionCalibTarget,
       rprt = c("iteration", "region", "typ", "loc", "inc", "hsr", "ttot")
     )
-
-    p_renovationCalibTarget <- readGdxSymbol(gdxInp, "p_renovationCalibTarget", asMagpie = FALSE) %>%
-      .addRenType(identRepl) %>%
-      .computeSum(rprt = dims$renovation)
+    
+    if (is.null(pathToTarget)) {
+      p_renovationCalibTarget <- readGdxSymbol(gdxInp, "p_renovationCalibTarget", asMagpie = FALSE) %>%
+        dplyr::right_join(renAllowed, by = c("bs", "hs", "bsr", "hsr")) %>%
+        .addRenType(identRepl) %>%
+        .computeSum(rprt = dims$renovation)
+    } else {
+      p_renovationCalibTarget <- calibTarget[["renovation"]] %>%
+        filter(.data$qty == "area") %>%
+        select(-"qty") %>%
+        .addRenType(identRepl) %>%
+        .computeSum(rprt = dims$renovation) %>%
+        mutate(across(-all_of("value"), ~ factor(.x, levels = levels(v_renovation[[dplyr::cur_column()]]))))
+    }
 
     p_renovationCalibTargetTot <- .computeSum(
       p_renovationCalibTarget %>%
@@ -230,9 +265,9 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
                 by = dims$renovation) %>%
       mutate(relDev = .data$absDev / .data$target)
 
-    write.csv(v_stockDevAll, file = file.path(path, "v_stockDevAll.csv"), row.names = FALSE)
-    write.csv(v_renovationDevAll, file = file.path(path, "v_renovationDevAll.csv"), row.names = FALSE)
-    write.csv(v_constructionDevAll, file = file.path(path, "v_constructionDevAll.csv"), row.names = FALSE)
+    write.csv(v_stockDevAll, file = file.path(path, paste0("v_stockDevAll", outName, ".csv")), row.names = FALSE)
+    write.csv(v_renovationDevAll, file = file.path(path, paste0("v_renovationDevAll", outName, ".csv")), row.names = FALSE)
+    write.csv(v_constructionDevAll, file = file.path(path, paste0("v_constructionDevAll", outName, ".csv")), row.names = FALSE)
   }
 
 
@@ -485,7 +520,7 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
 
   # WRITE OUTPUT FILE ----------------------------------------------------------
 
-  outName <- paste0("BRICK_calibration_report", if (!is.null(priceSensCalibration)) "PS" else "", ".csv")
+  outName <- paste0("BRICK_calibration_report", outName, if (!is.null(priceSensCalibration)) "PS" else "", ".csv")
   write.csv(out, file.path(path, outName), row.names = FALSE)
 
 }
@@ -702,6 +737,28 @@ reportCalibration <- function(gdx, flowTargets = TRUE, priceSensCalibration = NU
            valuePos = sqrt(.data[["valuePos"]])) %>%
     select(-"sgn", -"valueSgn", -"valuePos")
 
+}
+
+# TODO: This is almost a copy of the brick helper function. And introduces a
+# a circular dependency, which should be avoided.
+#' Read calibration targets from input folder
+#'
+#' @param tcalib numeric, calibration time periods
+#'
+#' @importFrom dplyr %>% .data filter mutate
+#'
+.readCalibTarget <- function(path, tcalib) {
+  dims <- list(
+    stock        = c("qty", "bs", "hs", "vin", "region", "loc", "typ", "inc", "ttot"),
+    construction = c("qty", "bs", "hs", "region", "loc", "typ", "inc", "ttot"),
+    renovation   = c("qty", "bs", "hs", "bsr", "hsr", "vin", "region", "loc", "typ", "inc", "ttot")
+  )
+  lapply(setNames(nm = names(dims)), function(var) {
+    file <- paste0("f_", var, "CalibTarget.cs4r")
+    brick::readInput(file, c(dims[[var]], "value"), inputDir = path) %>%
+      mutate(across(-all_of(c("value", "ttot")), as.character)) %>%
+      filter(.data$ttot %in% tcalib)
+  })
 }
 
 #' Compute the relative deviation to calibration target data as the relative euclidean distance
