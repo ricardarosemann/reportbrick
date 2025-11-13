@@ -48,6 +48,7 @@ readGdxSymbol <- function(gdx, symbol, field = "level", asMagpie = NULL,
   }
 
   # make temporal dimensions numeric
+  # TODO: This is a duplicate of the below (but with less time variables)
   data <- mutate(data, across(any_of(c("ttot", "tall", "ttot2", "t")),
                               function(x) as.numeric(as.character(x))))
 

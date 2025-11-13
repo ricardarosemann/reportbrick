@@ -41,7 +41,7 @@
 showAnalysisPlot <- function(plotType, data, varName, yname, color = NULL, #nolint: cyclocomp_linter.
                              facets = c("loc", "typ"), rprt = NULL, avg = NULL, remCols = NULL,
                              xname = "ttotOut", valueName = yname, suppressLateTtot = TRUE,
-                             xlabName = NULL, ylabName = NULL, tmpl = NULL,
+                             xlabName = NULL, ylabName = NULL, tmpl = NULL, scales = "fixed",
                              filterRows = list(hs = "h2bo", hsr = "h2bo"),
                              ...) {
 
@@ -198,6 +198,61 @@ showAnalysisPlot <- function(plotType, data, varName, yname, color = NULL, #noli
     pl
 
   }
+
+  .createLtTwoBarTime <- function(plData, xName, yName, color = NULL, varCoarse = NULL, varFine = NULL) {
+    alphaMap <- c(1, 0.5)
+
+    if (is.null(varCoarse) || is.null(varFine)) {
+      varName <- unique(plData$variable)
+      if (length(varName) == 1) {
+        varCoarse <- varName
+      } else {
+        varGranularity <- lapply(stats::setNames(nm = varName), function(nm) {
+          plData %>%
+            filter(.data$variable == nm) %>%
+            pull(xName) %>%
+            unique() %>%
+            length()
+        }) %>%
+          unlist()
+        varCoarse <- names(varGranularity)[varGranularity == min(varGranularity)]
+        varFine <- names(varGranularity)[varGranularity == max(varGranularity)]
+      }
+    }
+
+    names(alphaMap) <- c(varCoarse, varFine)
+
+    maxCoarse <- max(plData[plData$variable == varCoarse, ][[xName]])
+
+    # Reformulate time periods as categorical data
+    plData <- plData %>%
+      filter(.data[[xName]] <= maxCoarse) %>%
+      mutate(across(xName, ~ ifelse(.data$variable == varCoarse, paste(.x, "period", sep = "_"), .x)))
+
+    allX <- unique(plData[[xName]])
+
+    plData <- plData %>%
+      mutate(across(xName, ~ factor(.x, levels = allX[order(allX)])),
+             xPos = as.numeric(.data[[xName]]),
+             width = ifelse(.data$variable == varCoarse, 0.8, 0.5),
+             variable = factor(.data$variable, levels = c(varCoarse, varFine)))
+
+    plDataCoarse <- filter(plData, .data$variable == varCoarse)
+
+    ggplot(plData, aes(x = .data$xPos, y = .data[[yName]],
+                             fill = .data[[color]], alpha = .data$variable, width = .data$width)) +
+      geom_col() +
+      scale_alpha_manual(values = alphaMap) +
+      scale_x_continuous(
+        breaks = plDataCoarse$xPos,
+        labels = plDataCoarse[[xName]],
+        name = xName
+      ) +
+      theme(
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)
+      )
+  }
+
 
   # Line plot
   .createLtLine <- function(plData, xname, yname, color, linetype) {
@@ -528,7 +583,7 @@ showAnalysisPlot <- function(plotType, data, varName, yname, color = NULL, #noli
     if (any(map == "")) map <- stats::setNames(names(map), names(map))
     map
   }), facets)
-  if (!is.null(facetMap)) {
+  if (!is.null(unlist(facetMap))) {
     plData <- mutate(plData, across(
       any_of(facets),
       ~ factor(facetMap[[dplyr::cur_column()]][.x], levels = facetMap[[dplyr::cur_column()]])
@@ -595,7 +650,7 @@ showAnalysisPlot <- function(plotType, data, varName, yname, color = NULL, #noli
     countAtMax <- count == unlist(lapply(filterVals, length))
     if (!all(countAtMax)) {
       count[!countAtMax][1] <- count[!countAtMax][1] + 1
-      if (any(which(countAtMax)) < which(!countAtMax)[1]) count[countAtMax[1:which(!countAtMax)[1]]] <- 1
+      if (any(which(countAtMax) < which(!countAtMax)[1])) count[1:(which(!countAtMax)[1] - 1)] <- 1
     } else {
       complete <- TRUE
     }
@@ -613,6 +668,7 @@ showAnalysisPlot <- function(plotType, data, varName, yname, color = NULL, #noli
       plotType,
       bar = .createLtBar(plDataMain, xname, yname, color, ...),
       twoBar = .createLtTwoBar(plDataMain, varName, xname, yname, color),
+      twoBarTime = .createLtTwoBarTime(plDataMain, xname, yname, color, ...),
       line = .createLtLine(plDataMain, xname, yname, color, ...),
       scatter = .createScatter(plDataMain, xname, yname, color, ...),
       pieChart = .createLtPieChart(plDataMain, varName, xname, yname, color,
@@ -627,8 +683,8 @@ showAnalysisPlot <- function(plotType, data, varName, yname, color = NULL, #noli
 
     if (is.null(pl)) next
     if (!grepl("ttot", xname)) pl <- pl + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
-    if (length(facets) == 1) pl <- pl + facet_wrap(facets = vars(.data[[facets[1]]]))
-    if (length(facets) == 2) pl <- pl + facet_grid(rows = vars(.data[[facets[1]]]), cols = vars(.data[[facets[2]]]))
+    if (length(facets) == 1) pl <- pl + facet_wrap(facets = vars(.data[[facets[1]]]), scales = scales)
+    if (length(facets) == 2) pl <- pl + facet_grid(rows = vars(.data[[facets[1]]]), cols = vars(.data[[facets[2]]]), scales = scales)
     if (!is.null(colorMap) && plotType %in% c("line", "scatter")) {
       pl <- pl + ggplot2::scale_color_manual(values = mip::plotstyle(colorMap))
     } else if (!is.null(colorMap)) {

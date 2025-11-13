@@ -367,9 +367,10 @@ reportLCCShare <- function(path, gdxName = "output.gdx", filterFullRen = list(vi
   # COMPUTE BRICK HEATING SYSTEM SHARES ----------------------------------------
 
   # Shares of initial systems when renovating
-  out[["renBrickIn"]] <- computeBrickShare("renovationIn", v_renovationIn)
+  out[["renBrickIn"]] <- computeBrickShare(v_renovationIn, "renovationIn")
+  #TODO: Does this make sense? Do I really want variable = "renovationIn"?
 
-  renBrickFull <- computeBrickShare("renovation", rename(v_renovation, ttotIn = "ttot"))
+  renBrickFull <- computeBrickShare(rename(v_renovation, ttotIn = "ttot"), "renovation")
   out[["renBrickFull"]] <- renBrickFull %>%
     .filterAsUnion(filterFullRen)
   out[["renBrickEl1"]] <- aggregateShare(renBrickFull, weight = v_renovationIn,

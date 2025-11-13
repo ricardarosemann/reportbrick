@@ -37,13 +37,32 @@ plotBRICKAdditional <- function(path = ".", file = NULL,
                                 plottingRoutine = "plotsCalibration.Rmd",
                                 outName = "", scenNames = NULL, regionHandling = "all") {
 
+
+  # If on windows 'path' is too long, add the Windows long path prefix '\\\\?\\'
+  .safeLongPath <- function(path, fileNameLength) {
+    if (.Platform$OS.type == "windows") {
+      if (nchar(path) >= 259 - fileNameLength && !grepl("^\\\\\\\\\\?\\\\", path)) {
+        path <- paste0("\\\\?\\", path)
+      }
+    }
+    path
+  }
+
+
+
+  # Extract file/scenario names and title --------------------------------------
+
   docTitles <- c(plotsCalibration.Rmd = "BRICK Calibration Report",
                  plotsLcc.Rmd = "BRICK Analysis report",
-                 plotsLccExt.Rmd = "BRICK Analysis report (Extended)")
+                 plotsLccExt.Rmd = "BRICK Analysis report (Extended)",
+                 plotsMatchingAgg.Rmd = "BRICK Matching Aggregation report")
   allFiles <- c(plotsCalibration.Rmd = "BRICK_calibration_report",
                 plotsLcc.Rmd = "BRICK_analysis_report",
-                plotsLccExt.Rmd = "BRICK_analysis_report")
+                plotsLccExt.Rmd = "BRICK_analysis_report",
+                plotsMatchingAgg.Rmd = "BRICK_matching_aggregation_report")
   if (grepl("Ext", plottingRoutine)) outName <- paste0("Ext", outName)
+
+  path <- paste0(normalizePath(path), "\\")
 
   # Extract the scenario name from the output directory
   scenario <- sub("_\\d{4}-\\d{2}-\\d{2}_\\d{2}\\.\\d{2}\\.\\d{2}", "", basename(path))
@@ -68,10 +87,34 @@ plotBRICKAdditional <- function(path = ".", file = NULL,
   # All output will be stored in the first directory passed
   finalOutputDir <- unname(path[1])
 
+
+
+  # Handle long path -----------------------------------------------------------
+
+  if (length(path) == 1 && nchar(path) > 150) {
+    tmpDir <- file.path(dirname(path), "plotsTmp")
+    if (!file.exists(tmpDir)) {
+      dir.create(tmpDir)
+    }
+    if (!file.exists(file.path(tmpDir, "config"))) {
+      dir.create(file.path(tmpDir, "config"))
+    }
+    file.copy(from = file.path(path, file), to = file.path(tmpDir, file), overwrite = TRUE)
+    file.copy(from = file.path(path, "config", "config_COMPILED.yaml"), to = file.path(tmpDir, "config"), overwrite = TRUE)
+    plottingPath <- tmpDir
+    finalOutputDir <- tmpDir
+  } else {
+    plottingPath <- path
+  }
+
   # Copy markdown file to the final output directory
   file.copy(getSystemFile("plotsAdditional", plottingRoutine,
                           package = "reportbrick"),
             finalOutputDir, overwrite = TRUE)
+
+
+
+  # Region handling ------------------------------------------------------------
 
   # Read available regions from config
   configRegions <- yaml::read_yaml(file.path(path, "config", "config_COMPILED.yaml"))[["regions"]]
@@ -91,17 +134,22 @@ plotBRICKAdditional <- function(path = ".", file = NULL,
     regionSeq <- list(regionHandling)
   } else {
     if (length(regionHandling) > 1) {
-      message("Region handling contains more than one region. 'plotsLcc' can only handle one region. ",
+      message("Region handling contains more than one region. ",
+              "'plotsLcc' and 'plotsMatchingAgg' can only handle one region. ",
               "A separate report is generated for each region.")
     }
     regionSeq <- regionHandling
     addRegionToName <- !identical(regionHandling, "all")
   }
 
+
+
+  # Render the Rmd -------------------------------------------------------------
+
   for (reg in regionSeq) {
     # Assemble the parameters to be passed to the markdown file
     yamlParams <- list(
-      path = normalizePath(path),
+      path = plottingPath,
       file = file,
       docTitle = paste(docTitles[plottingRoutine], paste(scenario, collapse = " - ")),
       scenNames = scenNames,
@@ -119,4 +167,19 @@ plotBRICKAdditional <- function(path = ".", file = NULL,
       params = yamlParams
     )
   }
+
+
+
+  # Copy results if necessary --------------------------------------------------
+
+  if (length(path) == 1 && nchar(path) > 150) {
+    plotFiles <- list.files(tmpDir, pattern = paste0(allFiles[[plottingRoutine]], ".*\\.pdf"))
+    path <- .safeLongPath(path, max(nchar(plotFiles)))
+    success <- all(file.copy(from = file.path(tmpDir, plotFiles), to = path, overwrite = TRUE))
+
+    if (isTRUE(success)) {
+      message("Result files ", paste(plotFiles, collapse = ", "), " copied successfully.")
+    }
+  }
+
 }

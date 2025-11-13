@@ -1,0 +1,126 @@
+---
+title: "`r params$docTitle`"
+date: "`r format(Sys.Date())`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    fig_caption: false
+params:
+    docTitle: "BRICK Matching Aggregation report"
+    file: "BRICK_matching_aggregation_report.csv"
+    path: "C:/Users/ricardar/Documents/Results/BRICK/ECEMP-runs/WithConstruction/matching_2025-11-05_10.34.32/aggregationForCalibration/matching_2025-11-05_10.34.32_for_calibrationLogitwCcL6rL4_to2010.yaml_2025-11-12_11.31.29/"
+    scenNames: NULL
+    name: ""
+    region: "DEU"
+---
+
+```{r setup, include=FALSE}
+library(dplyr) #nolint: undesirable_function_linter.
+library(ggplot2) #nolint: undesirable_function_linter.
+
+knitr::opts_chunk$set(
+  echo = FALSE,
+  error = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+```{r set variables, check existence of first file}
+
+# Assemble the file path
+filePath <- file.path(params$path, params$file)
+
+if (length(filePath) > 1) {
+  stop("plotsMatchingAgg.Rmd only runs on a single file.")
+}
+
+# Check if the file exists
+if (!file.exists(filePath)) {
+  message("Desired gdx not found.")
+  knitr::knit_exit()
+}
+
+config <- yaml::read_yaml(file.path(params$path, "config", "config_COMPILED.yaml"))
+tmpl <- config[["reportingTemplate"]]
+
+.createMatchingAggPlot <- function(suffix, data, color = "hs", facets = NULL, rprt = c("loc", "typ", "vin"), xlabName = "Time", ylabName = "Heating system") {
+  showAnalysisPlot("twoBarTime", data, paste0(suffix, c("Match", "Agg")), "value", color = color, facets = facets, rprt = rprt,    xname = "ttot", xlabName = xlabName, ylabName = ylabName, scales = "free_y")
+}
+
+```
+
+```{r Read in data}
+dataTmp <- utils::read.csv(filePath)
+data <- dataTmp %>%
+  filter(typ == "Res" | is.na(typ)) # Temporary
+
+if (!identical(params$region, "all")) data <- filter(data, .data$region %in% c(params$region, NA))
+```
+
+# Calibration targets
+
+## Stock
+
+```{r Plot stock targets}
+
+.createMatchingAggPlot("stock", data)
+
+```
+
+## Construction
+
+```{r Plot construction targets}
+
+.createMatchingAggPlot("con", data, rprt = c("loc", "typ"))
+
+```
+
+## Demolition
+
+```{r Plot demolition targets}
+
+.createMatchingAggPlot("dem", data)
+
+```
+
+## Renovation (all)
+
+```{r Plot renovation targets}
+
+.createMatchingAggPlot("renHS", data, facets = "hs", color = "hsr")
+
+```
+
+## Renovation (effective)
+
+```{r Plot renovation targets, effective}
+
+.createMatchingAggPlot("renHSEff", data, facets = "hs", color = "hsr")
+
+```
+
+### Shares of final heating systems
+
+```{r Plot renovation targets, shares final hs}
+
+.createMatchingAggPlot("renShare", data, facets = "hs", color = "hsr", xlabName = "Time of renovation", ylabName = "Final heating system")
+
+```
+
+### Renovated share of original heating systems
+
+```{r Plot renovation targets, share original hs}
+
+.createMatchingAggPlot("renShareTot", data, xlabName = "Time of renovation", ylabName = "Original heating system")
+
+```
+
+### Renovation rate by original heating system
+
+```{r Plot renovation rate by original hs}
+
+.createMatchingAggPlot("renRate", data, facets = "hs", xlabName = "Time of renovation", ylabName = "Rate of heating replacement")
+
+```

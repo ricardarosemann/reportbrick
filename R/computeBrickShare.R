@@ -2,13 +2,13 @@
 #'
 #' @author Ricarda Rosemann
 #'
-#' @param variable character, Brick variable that is evaluated
 #' @param data data frame, Brick stock and flow data
+#' @param variable character, Brick variable that is evaluated
 #'
 #' @importFrom dplyr %>% across all_of .data filter group_by mutate
 #'   rename select ungroup
 #'
-computeBrickShare <- function(variable, data) {
+computeBrickShare <- function(data, variable) {
 
   # If this is renovation data: Need to sum over hsr and remove zero renovation
   if (variable == "renovation") {
