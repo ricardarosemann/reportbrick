@@ -71,9 +71,9 @@ reportMatchingAggregation <- function(path, pathAgg = NULL) {
 
   # Share computation ----------------------------------------------------------
 
-  renovationShare <- lapply(v_renovationHS, computeBrickShare, variable = "renovation")
+  renovationShare <- lapply(v_renovationHSEff, computeBrickShare, variable = "renovation")
 
-  renovationShareTot <- lapply(v_renovationHS, function(ren) {
+  renovationShareTot <- lapply(v_renovationHSEff, function(ren) {
     ren %>%
       group_by(across(-all_of(c("hsr", "value")))) %>%
       summarise(value = sum(.data$value), .groups = "drop") %>%
