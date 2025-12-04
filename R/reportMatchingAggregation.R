@@ -1,19 +1,51 @@
 #' report results from matching aggregation
 #'
-#' @param path character, path to the matching folder
 #' @param pathAgg character, path to the matching aggregation.
-#'   Can be a relative path with respect to the matching folder.
-#'   If \code{NULL}: Use the newest aggregation in the matching folder
+#'   Can be a relative path with respect to the matching folder if pathMatch is given
+#' @param pathMatch character, path to the matching folder
+#'   If \code{NULL}: Use the respective parent directory of the aggregation folder
 #'
-reportMatchingAggregation <- function(path, pathAgg = NULL) {
+reportMatchingAggregation <- function(pathAgg, pathMatch = NULL) {
+
+
+
+  # Assemble the input paths ---------------------------------------------------
+
+  if (is.null(pathMatch)) {
+    if (!file.exists(pathAgg)) {
+      stop("If 'pathMatch' is not specified, 'pathAgg' has to provide a full path.")
+    }
+    pathMatch <- dirname(dirname(pathAgg))
+  } else {
+    if (!file.exists(pathAgg)) {
+      pathAgg <- file.path(pathMatch, "aggregationForCalibration", pathAgg)
+      if (!file.exists(pathAgg)) {
+        stop("'pathAgg' is invalid: ",
+             "It is neither an existing path nor a subdirectory of '<pathmatch>/aggregationForCalibration'")
+      }
+    }
+  }
 
 
 
   # Functions ------------------------------------------------------------------
 
-  .readMatchAndAgg <- function(gdxes, symbol) {
-    lapply(gdxes, function(g) {
-      readGdxSymbol(g, symbol = symbol, asMagpie = FALSE)
+  .aggregateRegions <- function(df, regionMap) {
+    df %>%
+      left_join(regionMap, by = "region") %>%
+      group_by(across(-all_of(c("region", "value")))) %>%
+      summarise(value = sum(.data$value), .groups = "drop") %>%
+      rename(region = "regionAgg") %>%
+      select(all_of(names(df))) # reorder columns
+  }
+
+  .readMatchAndAgg <- function(gdxes, symbol, regionMap) {
+    lapply(stats::setNames(nm = names(gdxes)), function(nm) {
+      v <- readGdxSymbol(gdxes[[nm]], symbol = symbol, asMagpie = FALSE)
+      if (identical(nm, "matching")) {
+        v <- .aggregateRegions(v, regionMap)
+      }
+      v
     })
   }
 
@@ -21,15 +53,19 @@ reportMatchingAggregation <- function(path, pathAgg = NULL) {
 
   # Prepare --------------------------------------------------------------------
 
-  gdx <- file.path(path, "output.gdx")
-  gdxInput <- file.path(path, "input.gdx")
+  gdx <- file.path(pathMatch, "output.gdx")
+  gdxInput <- file.path(pathMatch, "input.gdx")
   gdxAgg <- file.path(pathAgg, "output.gdx")
 
   gdxes <- c(gdx, gdxAgg)
   names(gdxes) <- c("matching", "aggregation")
 
   # Read config
-  cfg <- read_yaml(file = file.path(path, "config", "config_COMPILED.yaml"))
+  cfg <- read_yaml(file = file.path(pathMatch, "config", "config_COMPILED.yaml"))
+  cfgAgg <- read_yaml(file = file.path(pathAgg, "config", "config_COMPILED.yaml"))
+
+  regionMap <- toolGetMapping(cfgAgg$regionmapping[1], "regional", cfgAgg$regionmapping[2]) %>%
+    select(region = "CountryCode", regionAgg = "RegionCode")
 
   # Determine relevant variables
   if (isTRUE(cfg[["switches"]][["SEQUENTIALREN"]])) {
@@ -51,13 +87,13 @@ reportMatchingAggregation <- function(path, pathAgg = NULL) {
 
   # Read -----------------------------------------------------------------------
 
-  v_stock <- .readMatchAndAgg(gdxes, "v_stock")
+  v_stock <- .readMatchAndAgg(gdxes, "v_stock", regionMap)
 
-  v_construction <- .readMatchAndAgg(gdxes, "v_construction")
+  v_construction <- .readMatchAndAgg(gdxes, "v_construction", regionMap)
 
-  v_demolition <- .readMatchAndAgg(gdxes, "v_demolition")
+  v_demolition <- .readMatchAndAgg(gdxes, "v_demolition", regionMap)
 
-  v_renovationHS <- .readMatchAndAgg(gdxes, "v_renovationHS")
+  v_renovationHS <- .readMatchAndAgg(gdxes, "v_renovationHS", regionMap)
 
   v_renovationHSEff <- lapply(v_renovationHS, function(ren) {
     filter(ren, .data$hsr != 0)
