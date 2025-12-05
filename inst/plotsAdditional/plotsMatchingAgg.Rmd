@@ -9,7 +9,7 @@ output:
 params:
     docTitle: "BRICK Matching Aggregation report"
     file: "BRICK_matching_aggregation_report.csv"
-    path: "C:/Users/ricardar/Documents/Results/BRICK/ECEMP-runs/WithConstruction/matching_2025-11-05_10.34.32/aggregationForCalibration/matching_2025-11-05_10.34.32_for_calibrationLogitwCcL6rL4_to2010.yaml_2025-11-12_11.31.29/"
+    path: "C:/Users/ricardar/Documents/Results/BRICK/calibration-tests/extendVin/matching_2025-12-04_14.45.23/aggregationForCalibration/matching_2025-12-04_14.45.23_for_calibrationLogit.yaml_2025-12-04_14.56.43/"
     scenNames: NULL
     name: ""
     region: "DEU"

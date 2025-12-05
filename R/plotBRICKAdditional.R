@@ -120,8 +120,8 @@ plotBRICKAdditional <- function(path = ".", file = NULL,
   configRegions <- yaml::read_yaml(file.path(path, "config", "config_COMPILED.yaml"))[["regions"]]
 
   # Apply region handling
-  if (grepl("plotsLcc", plottingRoutine) && identical(regionHandling, "all") && length(configRegions) > 1) {
-    message("Region handling was set to 'all' for 'plotsLcc', but the data in ", path,
+  if (!identical(plottingRoutine, "plotsCalibration.Rmd") && identical(regionHandling, "all") && length(configRegions) > 1) {
+    message("Region handling was set to 'all' for 'plotsLcc' or 'plotsMatchingAgg', but the data in ", path,
             " contains more than one region. Using the 'separate' region handling instead.")
     regionHandling <- "separate"
   }
