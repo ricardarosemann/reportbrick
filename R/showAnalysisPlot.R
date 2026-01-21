@@ -41,7 +41,7 @@
 showAnalysisPlot <- function(plotType, data, varName, yname, color = NULL, #nolint: cyclocomp_linter.
                              facets = c("loc", "typ"), rprt = NULL, avg = NULL, remCols = NULL,
                              xname = "ttotOut", valueName = yname, suppressLateTtot = TRUE,
-                             xlabName = NULL, ylabName = NULL, tmpl = NULL,
+                             xlabName = NULL, ylabName = NULL, include0onY = FALSE, tmpl = NULL,
                              filterRows = list(hs = "h2bo", hsr = "h2bo"),
                              ...) {
 
@@ -641,6 +641,7 @@ showAnalysisPlot <- function(plotType, data, varName, yname, color = NULL, #noli
     }
     if (!is.null(xlabName)) pl <- pl + xlab(xlabName)
     if (!is.null(ylabName)) pl <- pl + ylab(ylabName)
+    if (isTRUE(include0onY)) pl <- pl + ggplot2::coord_cartesian(ylim = c(0, NA))
     print(pl)
   }
 }

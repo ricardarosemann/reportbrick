@@ -7,7 +7,8 @@
 reportLCCShare(
   path,
   gdxName = "output.gdx",
-  filterFullRen = list(vin = "1980-1989", ttotIn = 2005)
+  filterFullRen = list(vin = "1980-1989", ttotIn = 2005),
+  hsRef = "gabo"
 )
 }
 \arguments{

@@ -1,0 +1,359 @@
+---
+title: "`r params$docTitle`"
+date: "`r format(Sys.Date())`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    fig_caption: false
+params:
+    docTitle: "BRICK Input Prices"
+    file: "BRICK_input_price_report.csv"
+    path: "C:/Users/ricardar/Documents/Results/BRICK/matching/matching_2026-01-21_16.18.51/"
+    scenNames: NULL
+    name: ""
+    region: ""
+---
+
+```{r setup, include=FALSE}
+# nolint start: undesirable_function_linter.
+library(dplyr, include.only = c("%>%", "across", "any_of", ".data", "filter", "mutate",
+                                "select", "where"))
+# nolint end
+
+knitr::opts_chunk$set(
+  echo = FALSE,
+  error = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+```{r set variables, check existence of first file}
+# Assemble all file paths
+filePath <- file.path(params$path, params$file)
+
+# Get country to EU9 regionmapping
+regionmappingFull <- madrat::toolGetMapping("regionmappingEU27as9.csv", type = "regional", where = "mredgebuildings")
+regionmapping <- regionmappingFull %>%
+  select("CountryCode", "RegionCode") %>%
+  filter(.data$RegionCode != "ROW")
+
+# Check if at least one file in the given paths exists
+if (!any(file.exists(filePath))) {
+  message("No BRICK_input_price_report.csv file found.\n",
+          "BRICK_input_price_report.csv can be produced by running 'reportPriceInput.R'.")
+  knitr::knit_exit()
+}
+```
+
+```{r function taken from mredgebuildings}
+
+eur2usd <- function(x, year, iso3c) {
+  year <- min(2023, year)
+  tryCatch(
+    GDPuc::convertSingle(x = x,
+                         iso3c = iso3c,
+                         year = year,
+                         unit_in = paste("constant", year, "EUR"),
+                         unit_out = "constant 2017 Int$PPP"),
+    error = function(e) {
+      if (grepl("No information in source .+ for countries in 'gdp'\\.",
+                e$message)) {
+        x
+      } else {
+        e
+      }
+    },
+    warning = function(w) {
+      if (grepl("NAs have been generated for countries lacking conversion factors",
+                w$message)) {
+        x
+      } else {
+        w
+      }
+    }
+  )
+}
+```
+
+```{r read in data}
+data <- utils::read.csv(filePath)
+```
+
+# Carrier prices
+
+```{r plot carrier prices}
+showAnalysisPlot("line", data, "carrierPrice", "value",
+                 color = "carrier", facets = NULL, rprt = "region", xname = "ttot",
+                 ylabName = "Carrier price in [US$/kWh]", filterRows = NULL, include0onY = TRUE, linetype = "carrier")
+```
+
+# Price ratios
+
+## With respect to gas only
+
+```{r plot price ratios gas}
+regionsEU9 <- unique(regionmapping$RegionCode)
+
+dataGasRatio <- data %>%
+  left_join(regionmapping, by = c(region = "CountryCode")) %>%
+  filter(.data$carrier == "gases")
+  
+showAnalysisPlot("line", dataGasRatio, "ratioElec", "value",
+                 color = "region", facets = NULL, rprt = "RegionCode", xname = "ttot",
+                 ylabName = "Price ratio of electricity/gases", filterRows = NULL, include0onY = TRUE, linetype = "carrier")
+```
+
+## With respect to various carriers
+
+```{r plot price ratios}
+showAnalysisPlot("line", data, "ratioElec", "value",
+                 color = "carrier", facets = NULL, rprt = "region", xname = "ttot",
+                 ylabName = "Price ratio of electricity/given carrier",
+                 filterRows = NULL, include0onY = TRUE, linetype = "carrier")
+```
+
+# Price ratio by heat pump sale shares
+
+## All regions
+
+```{r plot price ratio vs heat pump sale shares}
+
+dataHpsales <- data %>%
+  filter(.data$variable %in% c("ratioElec", "hpsalesShare"),
+         .data$ttot %in% c(2000, 2005, 2010, 2015, 2020, 2022)) %>%
+  group_by(across(-all_of("value"))) %>%
+  summarise(value = mean(.data$value), .groups = "drop")
+
+# carriers <- setdiff(unique(dataHpsales$carrier), NA)
+carriers <- "gases"
+
+allData <- list()
+
+for (cr in carriers) {
+  thisHpData <- dataHpsales %>%
+    filter(.data$carrier == cr | is.na(.data$carrier)) %>%
+    select(-"carrier") %>%
+    pivot_wider(names_from = "variable") %>%
+    filter(is.finite(.data$ratioElec), is.finite(.data$hpsalesShare)) %>%
+    pivot_longer(cols = "ratioElec", names_to = "variable")
+  allData[[cr]] <- thisHpData
+  
+  showAnalysisPlot("scatter", thisHpData, "ratioElec", "value",
+                   xlabName = "Share of heat pumps in heating system sales",
+                   ylabName = "Price ratio of electricity/given carrier",
+                   color = "region", facets = NULL, rprt = "ttot", xname = "hpsalesShare",
+                   filterRows = NULL, include0onY = TRUE, shape = "region")
+  
+}
+```
+
+## Selected regions
+
+```{r plot price ratio vs heat pump sale shares}
+
+selectRegions <- c("FIN", "SWE", "DEU", "NLD", "EST", "POL", "ESP")
+
+dataHpsales <- data %>%
+  filter(.data$variable %in% c("ratioElec", "hpsalesShare"),
+         .data$ttot %in% c(2000, 2005, 2010, 2015, 2020, 2022),
+         .data$region %in% selectRegions) %>%
+  group_by(across(-all_of("value"))) %>%
+  summarise(value = mean(.data$value), .groups = "drop")
+
+# carriers <- setdiff(unique(dataHpsales$carrier), NA)
+carriers <- "gases"
+
+allData <- list()
+
+for (cr in carriers) {
+  thisHpData <- dataHpsales %>%
+    filter(.data$carrier == cr | is.na(.data$carrier)) %>%
+    select(-"carrier") %>%
+    pivot_wider(names_from = "variable") %>%
+    filter(is.finite(.data$ratioElec), is.finite(.data$hpsalesShare)) %>%
+    pivot_longer(cols = "ratioElec", names_to = "variable")
+  allData[[cr]] <- thisHpData
+  
+  showAnalysisPlot("scatter", thisHpData, "ratioElec", "value",
+                   xlabName = "Share of heat pumps in heating system sales",
+                   ylabName = "Price ratio of electricity/given carrier",
+                   color = "region", facets = NULL, rprt = "ttot", xname = "hpsalesShare",
+                   filterRows = NULL, include0onY = TRUE, shape = "region")
+  
+}
+```
+
+```{r read in eurostat prices}
+elecPrices <- readxl::read_xlsx("C:/Users/ricardar/Documents/Implementation Aids/BRICK/Data/nrg_pc_204__custom_19764442_spreadsheet.xlsx", sheet = "Sheet 7", skip = 11)[2:44, ] %>%
+  select(-matches("\\.\\.\\.\\d{1,2}")) %>%
+  rename(region = "TIME") %>%
+  mutate(across(matches("\\d{4}-S\\d{1}"), ~ as.numeric(ifelse(.x == ":", NA, .x)))) %>%
+  pivot_longer(matches("\\d{4}-S\\d{1}"), names_to = "time") %>%
+  separate_wider_delim("time", "-", names = c("year", "semester")) %>%
+  group_by(across(-all_of(c("semester", "value")))) %>%
+  summarise(value = mean(.data$value, na.rm = TRUE), .groups = "drop") %>%
+  mutate(carrier = "elec", year = as.numeric(.data$year))
+
+gasPrices <- readxl::read_xlsx("C:/Users/ricardar/Documents/Implementation Aids/BRICK/Data/nrg_pc_202__custom_19764417_spreadsheet.xlsx", sheet = "Sheet 7", skip = 11)[2:37, ] %>%
+  select(-matches("\\.\\.\\.\\d{1,2}")) %>%
+  rename(region = "TIME") %>%
+  mutate(across(matches("\\d{4}-S\\d{1}"), ~ as.numeric(ifelse(.x == ":", NA, .x)))) %>%
+  pivot_longer(matches("\\d{4}-S\\d{1}"), names_to = "time") %>%
+  separate_wider_delim("time", "-", names = c("year", "semester")) %>%
+  group_by(across(-all_of(c("semester", "value")))) %>%
+  summarise(value = mean(.data$value, na.rm = TRUE), .groups = "drop") %>%
+  mutate(carrier = "gases", year = as.numeric(.data$year))
+
+elecPricesNC <- readxl::read_xlsx("C:/Users/ricardar/Documents/Implementation Aids/BRICK/Data/nrg_pc_204__custom_19764442_spreadsheet.xlsx", sheet = "Sheet 9", skip = 11)[2:44, ] %>%
+  select(-matches("\\.\\.\\.\\d{1,2}")) %>%
+  rename(region = "TIME") %>%
+  mutate(across(matches("\\d{4}-S\\d{1}"), ~ as.numeric(ifelse(.x == ":", NA, .x)))) %>%
+  pivot_longer(matches("\\d{4}-S\\d{1}"), names_to = "time") %>%
+  separate_wider_delim("time", "-", names = c("year", "semester")) %>%
+  group_by(across(-all_of(c("semester", "value")))) %>%
+  summarise(value = mean(.data$value, na.rm = TRUE), .groups = "drop") %>%
+  mutate(carrier = "elec", year = as.numeric(.data$year))
+
+gasPricesNC <- readxl::read_xlsx("C:/Users/ricardar/Documents/Implementation Aids/BRICK/Data/nrg_pc_202__custom_19764417_spreadsheet.xlsx", sheet = "Sheet 9", skip = 11)[2:37, ] %>%
+  select(-matches("\\.\\.\\.\\d{1,2}")) %>%
+  rename(region = "TIME") %>%
+  mutate(across(matches("\\d{4}-S\\d{1}"), ~ as.numeric(ifelse(.x == ":", NA, .x)))) %>%
+  pivot_longer(matches("\\d{4}-S\\d{1}"), names_to = "time") %>%
+  separate_wider_delim("time", "-", names = c("year", "semester")) %>%
+  group_by(across(-all_of(c("semester", "value")))) %>%
+  summarise(value = mean(.data$value, na.rm = TRUE), .groups = "drop") %>%
+  mutate(carrier = "gases", year = as.numeric(.data$year))
+```
+
+```{r combine eurostat prices}
+eurostatPrices <- rbind(elecPrices, gasPrices) %>%
+  left_join(regionmappingFull, by = c(region = "X")) %>%
+  filter(.data$RegionCode != "ROW") %>%
+  mutate(variable = "carrierPriceEuro")
+
+eurostatRatio <- eurostatPrices %>%
+  pivot_wider(names_from = carrier) %>%
+  mutate(value = .data$elec / .data$gases,
+         variable = "ratioElec", .keep = "unused")
+
+eurostatPricesUSD <- eurostatPrices %>%
+  mutate(year = as.character(.data$year)) %>%
+  mutate(value = unlist(Map(eur2usd,
+                            x = .data$value,
+                            year = .data$year,
+                            iso3c = .data$CountryCode)),
+         variable = "carrierPrice")
+
+eurostatRatioUSD <- eurostatPricesUSD %>%
+  pivot_wider(names_from = carrier) %>%
+  mutate(value = .data$elec / .data$gases, variable = "ratioElec", .keep = "unused")
+
+eurostatPricesNC <- rbind(elecPricesNC, gasPricesNC) %>%
+  left_join(regionmappingFull, by = c(region = "X")) %>%
+  filter(.data$RegionCode != "ROW") %>%
+  mutate(variable = "carrierPriceNC")
+
+lcu2usd <- data.frame(region = unique(eurostatPricesNC$CountryCode)) %>%
+    mutate(lcu2usd = GDPuc::toolConvertSingle(1, .data$region, 2015,
+                                              unit_in = "current LCU",
+                                              unit_out = "constant 2017 Int$PPP"))
+
+vat <- 1.2
+
+eurostatPricesUSDfromNC <- eurostatPricesNC %>%
+  mutate(year = as.character(.data$year)) %>%
+  left_join(lcu2usd, by = c(CountryCode = "region")) %>%
+  mutate(value = .data$value / vat * .data$lcu2usd, # lcu/kWh to usd/kWh
+         .keep = "unused",
+         variable = "carrierPrice")
+
+eurostatRatioUSDfromNC <- eurostatPricesUSDfromNC %>%
+  pivot_wider(names_from = carrier) %>%
+  mutate(value = .data$elec / .data$gases,
+         variable = "ratioElec",
+         .keep = "unused")
+```
+
+# Price comparisons
+
+## Comparison to Eurostat prices in Euro
+
+### Eurostat prices
+
+```{r plot Eurostat prices}
+showAnalysisPlot("line", eurostatPrices, "carrierPriceEuro", "value",
+                 color = "carrier", facets = NULL, rprt = "region", xname = "year",
+                 ylabName = "Carrier price in [Euro/kWh]", filterRows = NULL, include0onY = TRUE, linetype = "carrier")
+```
+
+### Comparison carrier price
+
+```{r plot carrier price comparison}
+dataComp <- eurostatPricesUSD %>%
+  select(-"region", -"RegionCode") %>%
+  rename(region = "CountryCode", ttot = "year") %>%
+  mutate(ttot = as.numeric(.data$ttot), source = "EUROSTAT") %>%
+  rbind(data %>%
+          mutate(source = "IEA"))
+
+showAnalysisPlot("line", dataComp, "carrierPrice", "value",
+                 color = "carrier", facets = NULL, rprt = "region", xname = "ttot",
+                 ylabName = "Carrier price in [US$/kWh]", filterRows = NULL, include0onY = TRUE, linetype = "source")
+```
+
+### Comparison price ratio w.r.t. gas
+
+```{r plot price ratio comparison}
+dataGasRatioComp <- eurostatRatio %>%
+  select(-"region") %>%
+  rename(ttot = "year", region = "CountryCode") %>%
+  mutate(ttot = as.numeric(.data$ttot), carrier = "gases", source = "EUROSTAT") %>%
+  rbind(dataGasRatio %>%
+          mutate(source = "IEA"))
+
+showAnalysisPlot("line", dataGasRatioComp, "ratioElec", "value",
+                 color = "region", facets = NULL, rprt = "RegionCode", xname = "ttot",
+                 ylabName = "Price ratio of electricity/gases", filterRows = NULL, include0onY = TRUE, linetype = "source")
+```
+
+## Comparison to Eurostat prices in National Currency
+
+### Eurostat prices
+
+```{r plot Eurostat prices from NC}
+showAnalysisPlot("line", eurostatPricesUSDfromNC, "carrierPrice", "value",
+                 color = "carrier", facets = NULL, rprt = "region", xname = "year",
+                 ylabName = "Carrier price in [USD/kWh]", filterRows = NULL, include0onY = TRUE, linetype = "carrier")
+```
+
+### Comparison carrier price
+
+```{r plot carrier price comparison from NC}
+dataComp <- eurostatPricesUSDfromNC %>%
+  select(-"region", -"RegionCode") %>%
+  rename(region = "CountryCode", ttot = "year") %>%
+  mutate(ttot = as.numeric(.data$ttot), source = "EUROSTAT") %>%
+  rbind(data %>%
+          mutate(source = "IEA"))
+
+showAnalysisPlot("line", dataComp, "carrierPrice", "value",
+                 color = "carrier", facets = NULL, rprt = "region", xname = "ttot",
+                 ylabName = "Carrier price in [US$/kWh]", filterRows = NULL, include0onY = TRUE, linetype = "source")
+```
+
+### Comparison price ratio w.r.t. gas
+
+```{r plot price ratio comparison from NC}
+dataGasRatioComp <- eurostatRatioUSDfromNC %>%
+  select(-"region") %>%
+  rename(ttot = "year", region = "CountryCode") %>%
+  mutate(ttot = as.numeric(.data$ttot), carrier = "gases", source = "EUROSTAT") %>%
+  rbind(dataGasRatio %>%
+          mutate(source = "IEA"))
+
+showAnalysisPlot("line", dataGasRatioComp, "ratioElec", "value",
+                 color = "region", facets = NULL, rprt = "RegionCode", xname = "ttot",
+                 ylabName = "Price ratio of electricity/gases", filterRows = NULL, include0onY = TRUE, linetype = "source")
+```
