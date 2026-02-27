@@ -2,14 +2,16 @@
 #'
 #' @param path character, path to the desired input gdx
 #' @param gdxName character, file name of the desired input gdx
+#' @param gdxNameReferences character, file name of the desired references gdx
+#' @param refPath character, path to the desired references gdx if different from \code{path}
 #'
 #' @importFrom dplyr %>% .data filter mutate pick rename right_join rowwise select ungroup
 #' @importFrom tidyr pivot_wider
 #'
-reportPriceInput <- function(path, gdxName = "input.gdx", gdxNameReferences = "references.gdx") {
+reportPriceInput <- function(path, gdxName = "input.gdx", gdxNameReferences = "references.gdx", refPath = NULL) {
 
   inputFile <- file.path(path, gdxName)
-  refFile <- file.path(path, gdxNameReferences)
+  refFile <- file.path(if (!is.null(refPath)) refPath else path, gdxNameReferences)
 
 
 
