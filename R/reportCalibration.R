@@ -43,6 +43,7 @@ reportCalibration <- function(gdx, flowTargets = TRUE) {
   calibOptim <- identical(cfg[["switches"]][["RUNTYPE"]], "optimization")
   aggVin <- identical(cfg[["switches"]][["AGGREGATEDIM"]], "vin")
   removeDims <- if (isTRUE(aggVin)) "vin" else NULL
+  fixedBuildings <- cfg[["switches"]][["FIXEDBUILDINGS"]]
 
   # Determine relevant variables
   if (isTRUE(cfg[["switches"]][["SEQUENTIALREN"]])) {
@@ -148,10 +149,26 @@ reportCalibration <- function(gdx, flowTargets = TRUE) {
     renovationBS = "p_specCostRenBS",
     renovationHS = "p_specCostRenHS"
   )
+
+  renAllowedSym <- list(
+    renovation = "renAllowed",
+    renovationBS = "renAllowedBS",
+    renovationHS = "renAllowedHS"
+  )
+
+  renAllowed <- lapply(
+    X = renAllowedSym[setdiff(varIntang, "construction")],
+    FUN = readGdxSymbol,
+    gdx = gdx,
+    asMagpie = FALSE
+  )
+  vinExists <- readGdxSymbol(gdx, "vinExists", asMagpie = FALSE)
+
   p_intangCost <- lapply(stats::setNames(nm = varIntang), function(var) {
     .readGdxIter(gdx, costSym[[var]],
                  maxIter, asMagpie = FALSE, ttotFilter = tCalib,
-                 replaceVar = (identical(var, "construction"))) %>%
+                 replaceVar = (identical(var, "construction")),
+                 renAllowed = renAllowed[[var]], vinExists = if (var != "construction") vinExists else NULL) %>%
       filter(.data$cost == "intangible")
   })
 
@@ -363,11 +380,45 @@ reportCalibration <- function(gdx, flowTargets = TRUE) {
     )
   }
 
-  ## Deviations of aggregated brick results
+  ## Deviations of aggregated brick results ====
   out <- c(
     out,
     stats::setNames(deviationTot, paste0(namingMap[varAll], "TotDev")),
     stats::setNames(deviationTotHs, paste0(namingMap[varAllHs], "TotHsDev"))
+  )
+
+  ## Final intangible costs ====
+
+  out <- c(
+    out,
+    lapply(stats::setNames(varIntangBs, paste0(namingMap[varIntangBs], "IntangCostBsFin")), function(var) {
+      .computeRelevantMedian(
+        .selectLastIter(p_intangCost[[var]], maxIter),
+        .selectLastIter(brickRes[[var]], maxIter),
+        var,
+        "bsr",
+        removeVin = if (isTRUE(fixedBuildings)) "2000-2010" else NULL
+      )
+    }),
+    lapply(stats::setNames(varIntangHs, paste0(namingMap[varIntangHs], "IntangCostHsFinByHs")), function(var) {
+      .computeRelevantMedian(
+        .selectLastIter(p_intangCost[[var]], maxIter),
+        .selectLastIter(brickRes[[var]], maxIter),
+        var,
+        "hsr",
+        removeVin = if (isTRUE(fixedBuildings)) "2000-2010" else NULL
+      )
+    }),
+    lapply(stats::setNames(varIntangHs, paste0(namingMap[varIntangHs], "IntangCostHsFin")), function(var) {
+      .computeRelevantMedian(
+        .selectLastIter(p_intangCost[[var]], maxIter),
+        .selectLastIter(brickRes[[var]], maxIter),
+        var,
+        "hsr",
+        removeVin = if (isTRUE(fixedBuildings)) "2000-2010" else NULL,
+        aggPrev = TRUE
+      )
+    })
   )
 
 
@@ -427,7 +478,8 @@ reportCalibration <- function(gdx, flowTargets = TRUE) {
 #' @importFrom dplyr %>% .data filter mutate
 #'
 .readGdxIter <- function(gdx, symbol, maxIter, minIter = 0, asMagpie = TRUE,
-                         ttotFilter = NULL, replaceVar = FALSE, dims = NULL) {
+                         ttotFilter = NULL, replaceVar = FALSE, dims = NULL,
+                         renAllowed = NULL, vinExists = NULL) {
 
   # Loop over all iterations and read in gdx files
   res <- data.frame()
@@ -454,6 +506,14 @@ reportCalibration <- function(gdx, flowTargets = TRUE) {
     } else {
       warning(paste("Data for iteration", i, "is missing. Skipping this iteration"))
     }
+  }
+
+  # If given, filter for allowed renovations and existing vintages
+  if (!is.null(renAllowed)) {
+    res <- right_join(res, renAllowed, by = intersect(colnames(renAllowed), c("bs", "hs", "bsr", "hsr")))
+  }
+  if (!is.null(vinExists)) {
+    res <- right_join(res, vinExists, by = c("ttot", "vin"))
   }
 
   # Might move this elsewhere, e.g. to a separate function
@@ -717,6 +777,62 @@ reportCalibration <- function(gdx, flowTargets = TRUE) {
     mutate(sgn = if (isTRUE(addSign)) sign(.data[["value.x"]] / .data[["value.y"]]) else 1,
            value = .data[["sgn"]] * .data[["value.x"]] ^ 2 / .data[["value.y"]] ^ 2) %>%
     select(-"value.x", -"value.y", -"sgn")
+}
+
+#' Compute the median of values which are relevant in terms of transition shares
+#'
+#' @param df data frame containing the data to compute the median on
+#' @param dfTrans data frame containing the data on corresponding transitions (renovations or constructions)
+#' @param var character, variable considered, either \code{construction} or containing \code{renovation}
+#' @param transTgt character, column name of the transition target, either \code{bsr} or \code{hsr}
+#' @param tol numeric, minimun transition share to be a relevant transition
+#' @param removeVin character, vintages to be removed from the data
+#' @param aggPrev logical, whether to aggregate over the previous state (only effective for renovation)
+#'
+#' @returns data frame with median for each region, transition target and potentially the previous state
+#'
+#' @importFrom dplyr %>% .data across all_of filter group_by left_join mutate rename select summarise
+#'
+.computeRelevantMedian <- function(df, dfTrans, var, transTgt, tol = 0.001, removeVin = NULL, aggPrev = FALSE) {
+  dfTrans <- rename(dfTrans, transitions = "value")
+
+  if (identical(var, "construction")) {
+    grpCols <- c(transTgt, "region")
+  } else if (grepl("renovation", var)) {
+    grpCols <- c(
+      if (isFALSE(aggPrev)) sub("r$", "", transTgt) else NULL,
+      transTgt,
+      "region"
+    )
+    df <- filter(df, !.data$vin %in% removeVin)
+  }
+
+  df %>%
+    left_join(dfTrans, by = intersect(colnames(df), colnames(dfTrans))) %>%
+    group_by(across(-all_of(c(transTgt, "value", "transitions")))) %>%
+    mutate(totTrans = sum(.data$transitions[.data[[transTgt]] != 0], na.rm = TRUE),
+           transShare = ifelse(.data[[transTgt]] != 0, .data$transitions / .data$totTrans, 1)) %>%
+    group_by(across(all_of(grpCols))) %>%
+    summarise(allTrans = sum(.data$transitions),
+             value = stats::median(.data$value[.data$transShare > tol], na.rm = TRUE),
+             relevantTransitions = any(.data$transShare > tol),
+             .groups = "drop") %>%
+    filter(.data$relevantTransitions, .data$allTrans != 0) %>%
+    select(-"relevantTransitions", -"allTrans")
+}
+
+#' Select the last iteration
+#'
+#' @param df data frame to select the last iteration from
+#' @param maxIter numeric, number of last iteration
+#'
+#' @returns data frame with only last iteration
+#'
+#' @importFrom dplyr %>% .data filter
+#'
+.selectLastIter <- function(df, maxIter) {
+  df %>%
+    filter(.data$iteration == maxIter)
 }
 
 #' Extend dimensions of a data frame by adding NA entries, add variable name
