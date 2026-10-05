@@ -140,24 +140,27 @@ reportBuildingStock <- function(gdx, brickSets = NULL, silent = TRUE) {
     }
 
 
-    out <- mbind(out,
+    if (paste0("Stock|", sector, " (mn m2)") %in% names(out)) {
 
-      ## Net stock changes of total residential stock ====
-      setNames(
-        .computeStockDelta(out[, , paste0("Stock|", sector, " (mn m2)")], p_dt),
-        paste0("Net stock change|", sector, " (mn m2/yr)")
-      ),
+      out <- mbind(out,
 
-      ## Net stock changes by hs ====
-      do.call(mbind, lapply(brickSets[["hs"]][["subsets"]][["all"]], function(hs) {
-        hsName <- brickSets[["hs"]][["elements"]][[hs]]
-        varName <- paste0("Stock|", sector, "|", hsName, " (mn m2)")
+        ## Net stock changes of total residential stock ====
         setNames(
-          .computeStockDelta(out[, , varName], p_dt),
-          paste0("Net stock change|", sector, "|", hsName, " (mn m2/yr)")
-        )
-      }))
-    )
+          .computeStockDelta(out[, , paste0("Stock|", sector, " (mn m2)")], p_dt),
+          paste0("Net stock change|", sector, " (mn m2/yr)")
+        ),
+
+        ## Net stock changes by hs ====
+        do.call(mbind, lapply(brickSets[["hs"]][["subsets"]][["all"]], function(hs) {
+          hsName <- brickSets[["hs"]][["elements"]][[hs]]
+          varName <- paste0("Stock|", sector, "|", hsName, " (mn m2)")
+          setNames(
+            .computeStockDelta(out[, , varName], p_dt),
+            paste0("Net stock change|", sector, "|", hsName, " (mn m2/yr)")
+          )
+        }))
+      )
+    }
 
   }
 
